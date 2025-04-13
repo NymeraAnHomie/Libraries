@@ -1,3 +1,46 @@
+local Controls = {
+    Frozen = "E",
+    Wipe = "Delete",
+    Spectate = "One",
+    Create = "Two",
+    Test = "Three",
+	AdvanceFrame = "G",
+    Backward = "Z",
+    Forward = "X",
+    LoopBackward = "C",
+    LoopForward = "V"
+}
+
+local Cursors = {
+	["ArrowFarCursor"] = { -- Default
+		Icon = "rbxasset://textures/Cursors/KeyboardMouse/ArrowFarCursor.png";
+		Size = UDim2.fromOffset(64,64);
+		Offset = Vector2.new(-32,4);
+	};
+	["MouseLockedCursor"] = { -- Shiftlock
+		Icon = "rbxasset://textures/MouseLockedCursor.png";
+		Size = UDim2.fromOffset(32,32);
+		Offset = Vector2.new(-16,20);
+	};
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- End of config
+
+
+
 -- Constants
 local Version = "V1.2"
 local Title = "Tasability " .. tostring(Version)
@@ -19,30 +62,6 @@ local Camera = Workspace.CurrentCamera
 local States = {} -- Values for Tasability Writing
 local Frames = {}
 local Pressed = {}
-local Controls = {
-    Frozen = "E",
-    Wipe = "Delete",
-    Spectate = "One",
-    Create = "Two",
-    Test = "Three",
-	AdvanceFrame = "G",
-    Backward = "Z",
-    Forward = "X",
-    LoopBackward = "C",
-    LoopForward = "V"
-}
-local Cursors = {
-	["ArrowFarCursor"] = { -- Default
-		Icon = "rbxasset://textures/Cursors/KeyboardMouse/ArrowFarCursor.png";
-		Size = UDim2.fromOffset(64,64);
-		Offset = Vector2.new(-32,4);
-	};
-	["MouseLockedCursor"] = { -- Shiftlock
-		Icon = "rbxasset://textures/MouseLockedCursor.png";
-		Size = UDim2.fromOffset(32,32);
-		Offset = Vector2.new(-16,20);
-	};
-}
 
 -- Variables
 local Index = 1
