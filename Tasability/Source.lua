@@ -61,6 +61,7 @@ local Camera = Workspace.CurrentCamera
 
 -- Variables Table
 local States = {} -- Values for Tasability Writing
+local Animation = {}
 local Frames = {}
 local Pressed = {}
 
@@ -82,6 +83,7 @@ States.LoopingForward = false
 States.LoopingBackward = false
 States.Tas = nil
 States.Name = ""
+Animation.Disable = false
 
 if not isfolder("Tasability") then makefolder("Tasability") end
 if not isfolder("Tasability/PC") then makefolder("Tasability/PC") end
@@ -269,6 +271,8 @@ do
 		}
 		
 		local EmoteNames = { wave = false, point = false, dance1 = true, dance2 = true, dance3 = true, laugh = false, cheer = false}
+		local ToolAnim = "None"
+		local ToolAnimTime = 0
 		local JumpAnimTime = 0
 		local JumpAnimDuration = 0.3
 		local FallTransitionTime = 0.3
@@ -330,10 +334,18 @@ do
 			
 			-- Connect Events
 			Humanoid.Died:connect(function(...)
+				if Animation.Disable then 
+					return 
+				end
+				
 				Pose = "Dead"
 			end)
 
 			Humanoid.Running:connect(function(Speed)
+				if Animation.Disable then 
+					return 
+				end
+				
 				if Speed > 0.01 then
 					Pose = "Running"
 					PlayAnimation("Walk", 0.1, Humanoid)
@@ -347,22 +359,38 @@ do
 			end)
 
 			Humanoid.Jumping:connect(function(...)
+				if Animation.Disable then 
+					return 
+				end
+				
 				PlayAnimation("Jump", 0.1, Humanoid)
 				JumpAnimTime = JumpAnimDuration
 				Pose = "Jumping"
 			end)
 
 			Humanoid.Climbing:connect(function(Speed)
+				if Animation.Disable then 
+					return 
+				end
+				
 				PlayAnimation("Climb", 0.1, Humanoid)
 				SetAnimationSpeed(Speed / 12.0)
 				Pose = "Climbing"
 			end)
 
 			Humanoid.GettingUp:connect(function(...)
+				if Animation.Disable then 
+					return 
+				end
+				
 				Pose = "GettingUp"
 			end)
 
 			Humanoid.FreeFalling:connect(function(...)
+				if Animation.Disable then 
+					return 
+				end
+				
 				if JumpAnimTime <= 0 then
 					PlayAnimation("Fall", FallTransitionTime, Humanoid)
 				end
@@ -370,18 +398,34 @@ do
 			end)
 
 			Humanoid.FallingDown:connect(function(...)
+				if Animation.Disable then 
+					return 
+				end
+				
 				Pose = "FallingDown"
 			end)
 
 			Humanoid.Seated:connect(function(...)
+				if Animation.Disable then 
+					return 
+				end
+				
 				Pose = "Seated"
 			end)
 
 			Humanoid.PlatformStanding:connect(function(...)
+				if Animation.Disable then 
+					return 
+				end
+			
 				Pose = "PlatformStanding"
 			end)
 
 			Humanoid.Swimming:connect(function(Speed)
+				if Animation.Disable then 
+					return 
+				end
+				
 				if Speed > 0 then
 					Pose = "Swimming"
 					PlayAnimation("Swim", 0.1, Humanoid)
@@ -394,7 +438,7 @@ do
 			LocalPlayer.Chatted:Connect(function(message)
 		        local args = string.split(message, " ")
 		        if args[1] == "/e" and AnimNames[args[2]] then
-		            PlayAnimation(args[2], 0.1, LocalPlayer.Character:WaitForChild("Humanoid"))
+		            PlayAnimation(args[2], 0.1, Humanoid)
 		        end
 		    end)
 		
