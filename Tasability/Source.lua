@@ -107,7 +107,7 @@ local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/Nym
 local Window = OrionLib:MakeWindow({Name = Title, IntroText = Title, IntroIcon = "rbxassetid://10734982297", SaveConfig = false, ConfigFolder = "Tasability"})
 
 function Notify(Name, Content, Time)
-	if not OrionLib.Flags["toggle1"].Value then
+	if not OrionLib.Flags["Disable Tasability Notifications"].Value then
 		OrionLib:MakeNotification({
 			Name = Name,
 			Content = Content,
@@ -523,10 +523,10 @@ do
 		end})
 		
 		local Keybinds = Window:MakeTab({Name = "Keybinds", Icon = "rbxassetid://10723395457"})
-
+		
 		local Settings = Window:MakeTab({Name = "Settings", Icon = "rbxassetid://10734950309"})
-		Settings:AddToggle({Name = "Disable Tasability Notification", Save = true, Flag = "toggle1"})
-		Settings:AddToggle({Name = "Disable Finish Notification", Save = true, Flag = "toggle2"}) -- OrionLib.Flags["toggle2"].Value
+		Settings:AddToggle({Name = "Disable Tasability Notification", Save = true, Flag = "Disable Tasability Notifications"})
+		Settings:AddToggle({Name = "Disable Finish Notification", Save = true, Flag = "Disable Finish Notifications"})
 		Settings:AddButton({Name = "Unload", Callback = function()
 		    OrionLib:Destroy()
 		end})
