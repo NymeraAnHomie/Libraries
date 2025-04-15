@@ -46,6 +46,7 @@ local Version = "V1.2"
 local Title = "Tasability " .. tostring(Version)
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
 local UserInputService = game:GetService("UserInputService")
@@ -79,7 +80,6 @@ States.Frozen = false
 States.Dead = false
 States.LoopingForward = false
 States.LoopingBackward = false
---States.ReplaySpeed = 1.0
 States.Tas = nil
 States.Name = ""
 
@@ -197,6 +197,36 @@ do
 		    writefile(path, HttpService:JSONEncode(serializedFrames))
 		    Notify("Action", "TAS saved/overwrite.", 3)
 		end
+	end
+	
+	-- Anticheat bypasses
+	do
+		pcall(function() -- Nymera antikick hook
+			local oldNamecall
+			oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+			    local method = getnamecallmethod()
+			    if not checkcaller() and self == LocalPlayer and method == "Kick" then
+			        return warn("Kick attempt blocked")
+			    end
+			    return oldNamecall(self, ...)
+			end)
+		end)
+		pcall(function() -- Practice anticheat bypass
+			ReplicatedStorage.Remotes.Send:Destroy()
+		end)
+		pcall(function() -- Slad anticheat bypass
+			local sendremote = ReplicatedStorage.DefaultChatSystemChatEvents.ChannelNameColorUpdated
+			local oldspawn
+			oldspawn = hookfunction(getrenv().spawn, function(...)
+				if not checkcaller() and (tostring(getcallingscript()) == "Animate" or tostring(getcallingscript()) == "RbxAnimateScript") then
+					return oldspawn(function()
+						
+					end)
+				end
+				return oldspawn(...)
+			end)
+			sendremote:Destroy()
+		end)
 	end
 	
 	-- Animations Functions
