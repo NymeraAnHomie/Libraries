@@ -440,20 +440,22 @@ do
 			
 			task.spawn(function()
 				while true do
-					if HumanoidState == "Running" and Humanoid:GetState() ~= Enum.HumanoidStateType.Running then
-						Humanoid:ChangeState(Enum.HumanoidStateType.Running)
-					elseif HumanoidState == "Seated" and Humanoid:GetState() ~= Enum.HumanoidStateType.Seated then
-						Humanoid:ChangeState(Enum.HumanoidStateType.Seated)
-					elseif HumanoidState == "Climbing" and Humanoid:GetState() ~= Enum.HumanoidStateType.Climbing then
-						Humanoid:ChangeState(Enum.HumanoidStateType.Climbing)
-					elseif HumanoidState == "Jumping" and Humanoid:GetState() ~= Enum.HumanoidStateType.Jumping then
-						Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-					elseif HumanoidState == "Freefall" and Humanoid:GetState() ~= Enum.HumanoidStateType.Freefall then
-						Humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
-					elseif HumanoidState == "FallingDown" and Humanoid:GetState() ~= Enum.HumanoidStateType.FallingDown then
-						Humanoid:ChangeState(Enum.HumanoidStateType.FallingDown)
-					elseif HumanoidState == "Swimming" and Humanoid:GetState() ~= Enum.HumanoidStateType.Swimming then
-						Humanoid:ChangeState(Enum.HumanoidStateType.Swimming)
+					if States.Reading and Humanoid then
+						if HumanoidState == "Running" and Humanoid:GetState() ~= Enum.HumanoidStateType.Running then
+							Humanoid:ChangeState(Enum.HumanoidStateType.Running)
+						elseif HumanoidState == "Seated" and Humanoid:GetState() ~= Enum.HumanoidStateType.Seated then
+							Humanoid:ChangeState(Enum.HumanoidStateType.Seated)
+						elseif HumanoidState == "Climbing" and Humanoid:GetState() ~= Enum.HumanoidStateType.Climbing then
+							Humanoid:ChangeState(Enum.HumanoidStateType.Climbing)
+						elseif HumanoidState == "Jumping" and Humanoid:GetState() ~= Enum.HumanoidStateType.Jumping then
+							Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+						elseif HumanoidState == "Freefall" and Humanoid:GetState() ~= Enum.HumanoidStateType.Freefall then
+							Humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
+						elseif HumanoidState == "FallingDown" and Humanoid:GetState() ~= Enum.HumanoidStateType.FallingDown then
+							Humanoid:ChangeState(Enum.HumanoidStateType.FallingDown)
+						elseif HumanoidState == "Swimming" and Humanoid:GetState() ~= Enum.HumanoidStateType.Swimming then
+							Humanoid:ChangeState(Enum.HumanoidStateType.Swimming)
+						end
 					end
 					RunService.RenderStepped:Wait()
 				end
