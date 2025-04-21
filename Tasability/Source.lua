@@ -686,21 +686,23 @@ do
 	
 	task.spawn(function() -- Reading
 	    while true do
-	        if States.Reading and Index <= #Frames then
-				Index = Index + 1
-	            local Frame = Frames[Index]
-	            if Frame then
-	                HumanoidRootPart.CFrame = Frame.CFrame
-	                HumanoidRootPart.Velocity = Frame.Velocity
-	                HumanoidRootPart.AssemblyLinearVelocity = Frame.AssemblyLinearVelocity
-	                HumanoidRootPart.AssemblyAngularVelocity = Frame.AssemblyAngularVelocity
-	                Camera.CFrame = Frame.Camera
-					Pose = Frame.Pose
-	                SetZoom(Frame.Zoom)
-					Humanoid:ChangeState(Enum.HumanoidStateType[Frame.State])
-					HumanoidState = tostring(Frame.State)
-	            end
-	        end
+			pcall(function() -- Sometime old tas file doe not met the option to read causing the script to break
+		        if States.Reading and Index <= #Frames then
+					Index = Index + 1
+		            local Frame = Frames[Index]
+		            if Frame then
+		                HumanoidRootPart.CFrame = Frame.CFrame
+		                HumanoidRootPart.Velocity = Frame.Velocity
+		                HumanoidRootPart.AssemblyLinearVelocity = Frame.AssemblyLinearVelocity
+		                HumanoidRootPart.AssemblyAngularVelocity = Frame.AssemblyAngularVelocity
+		                Camera.CFrame = Frame.Camera
+						Pose = Frame.Pose
+		                SetZoom(Frame.Zoom)
+						Humanoid:ChangeState(Enum.HumanoidStateType[Frame.State])
+						HumanoidState = tostring(Frame.State)
+		            end
+		        end
+			end)
 	        RunService.RenderStepped:Wait()
 	    end
 	end)
