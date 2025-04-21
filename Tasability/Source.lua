@@ -731,19 +731,21 @@ do
 
 	task.spawn(function() -- Freezing
 		while true do
-			if not States.Reading and not States.Dead then
-				if States.Frozen then
-					local Frame = Frames[Index]
-					if Frame and Index <= #Frames and Index ~= 0 then
-						HumanoidRootPart.CFrame = Frame.CFrame
-						HumanoidRootPart.Velocity = Frame.Velocity
-						HumanoidRootPart.AssemblyLinearVelocity = Frame.AssemblyLinearVelocity
-						HumanoidRootPart.AssemblyAngularVelocity = Frame.AssemblyAngularVelocity
-						Camera.CFrame = Frame.Camera
-						Humanoid:ChangeState(Enum.HumanoidStateType[Frame.State])
+			pcall(function()
+				if not States.Reading and not States.Dead then
+					if States.Frozen then
+						local Frame = Frames[Index]
+						if Frame and Index <= #Frames and Index ~= 0 then
+							HumanoidRootPart.CFrame = Frame.CFrame
+							HumanoidRootPart.Velocity = Frame.Velocity
+							HumanoidRootPart.AssemblyLinearVelocity = Frame.AssemblyLinearVelocity
+							HumanoidRootPart.AssemblyAngularVelocity = Frame.AssemblyAngularVelocity
+							Camera.CFrame = Frame.Camera
+							Humanoid:ChangeState(Enum.HumanoidStateType[Frame.State])
+						end
 					end
 				end
-			end
+			end)
 			HumanoidRootPart.Anchored = States.Frozen
 			RunService.RenderStepped:Wait()
 		end
