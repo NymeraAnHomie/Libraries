@@ -601,7 +601,6 @@ do
 	
 	-- Connections
 	UserInputService.InputBegan:Connect(function(Input)
-		if UserInputService:GetFocusedTextBox() then return end
 	    if Input.KeyCode == GetKeyCode(Controls.Wipe) then
 	        Frames = {}
 	        Index = 1
@@ -662,7 +661,6 @@ do
 	end)
 	
 	UserInputService.InputEnded:Connect(function(Input)
-		if UserInputService:GetFocusedTextBox() then return end
 	    if Input.KeyCode == GetKeyCode(Controls.LoopForward) then
 	        States.LoopingForward = false
 	    elseif Input.KeyCode == GetKeyCode(Controls.LoopBackward) then
