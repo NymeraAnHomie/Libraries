@@ -408,15 +408,6 @@ do
 				StopAllAnimations(Humanoid)
 				Pose = "FallingDown"
 			end)
-			
-			Humanoid.Landed:connect(function(...)
-				if Animation.Disabled then 
-					return 
-				end
-				
-				StopAllAnimations(Humanoid)
-				Pose = "Landed"
-			end)
 
 			Humanoid.Seated:connect(function(...)
 				if Animation.Disabled then 
