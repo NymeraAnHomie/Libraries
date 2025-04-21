@@ -74,6 +74,7 @@ local CursorIcon = nil
 local CursorSize = nil
 local CursorOffset = nil -- UserInputService:GetMouseLocation()
 local Pose = ""
+local HumanoidState = ""
 
 States.Writing = false
 States.Reading = false
@@ -83,7 +84,7 @@ States.LoopingForward = false
 States.LoopingBackward = false
 States.Tas = nil
 States.Name = ""
-Animation.Disable = false
+Animation.Disabled = false
 
 if not isfolder("Tasability") then makefolder("Tasability") end
 if not isfolder("Tasability/PC") then makefolder("Tasability/PC") end
@@ -163,7 +164,8 @@ do
 						MousePosition = DeserializeVector2(frameData.MousePosition),
 						Shiftlock = frameData.Shiftlock,
 						Zoom = frameData.Zoom,
-						Pose = frameData.Pose
+						Pose = frameData.Pose,
+						State = frameData.State
 		            })
 		        end
 		        
@@ -192,7 +194,8 @@ do
 					MousePosition = SerializeVector2(frame.MousePosition),
 				    Shiftlock = frame.Shiftlock,
 					Zoom = frame.Zoom,
-					Pose = frame.Pose
+					Pose = frame.Pose,
+					State = frame.State
 				})
 		    end
 		
@@ -208,7 +211,7 @@ do
 			oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
 			    local method = getnamecallmethod()
 			    if not checkcaller() and self == LocalPlayer and method == "Kick" then
-			        return warn("Kick attempt blocked")
+			        return warn("u almost got kicked lol")
 			    end
 			    return oldNamecall(self, ...)
 			end)
@@ -334,7 +337,7 @@ do
 			
 			-- Connect Events
 			Humanoid.Died:connect(function(...)
-				if Animation.Disable then 
+				if Animation.Disabled then 
 					return 
 				end
 				
@@ -342,7 +345,7 @@ do
 			end)
 
 			Humanoid.Running:connect(function(Speed)
-				if Animation.Disable then 
+				if Animation.Disabled then 
 					return 
 				end
 				
@@ -359,7 +362,7 @@ do
 			end)
 
 			Humanoid.Jumping:connect(function(...)
-				if Animation.Disable then 
+				if Animation.Disabled then 
 					return 
 				end
 				
@@ -369,7 +372,7 @@ do
 			end)
 
 			Humanoid.Climbing:connect(function(Speed)
-				if Animation.Disable then 
+				if Animation.Disabled then 
 					return 
 				end
 				
@@ -379,7 +382,7 @@ do
 			end)
 
 			Humanoid.GettingUp:connect(function(...)
-				if Animation.Disable then 
+				if Animation.Disabled then 
 					return 
 				end
 				
@@ -387,7 +390,7 @@ do
 			end)
 
 			Humanoid.FreeFalling:connect(function(...)
-				if Animation.Disable then 
+				if Animation.Disabled then 
 					return 
 				end
 				
@@ -398,15 +401,25 @@ do
 			end)
 
 			Humanoid.FallingDown:connect(function(...)
-				if Animation.Disable then 
+				if Animation.Disabled then 
 					return 
 				end
 				
+				StopAllAnimations(Humanoid)
 				Pose = "FallingDown"
+			end)
+			
+			Humanoid.Landed:connect(function(...)
+				if Animation.Disabled then 
+					return 
+				end
+				
+				StopAllAnimations(Humanoid)
+				Pose = "Landed"
 			end)
 
 			Humanoid.Seated:connect(function(...)
-				if Animation.Disable then 
+				if Animation.Disabled then 
 					return 
 				end
 				
@@ -414,7 +427,7 @@ do
 			end)
 
 			Humanoid.PlatformStanding:connect(function(...)
-				if Animation.Disable then 
+				if Animation.Disabled then 
 					return 
 				end
 			
@@ -422,7 +435,7 @@ do
 			end)
 
 			Humanoid.Swimming:connect(function(Speed)
-				if Animation.Disable then 
+				if Animation.Disabled then 
 					return 
 				end
 				
@@ -432,6 +445,27 @@ do
 				else
 					Pose = "Standing"
 					PlayAnimation("Idle", 0.1, Humanoid)
+				end
+			end)
+			
+			task.spawn(function()
+				while true do
+					if HumanoidState == "Running" and Humanoid:GetState() ~= Enum.HumanoidStateType.Running then
+						Humanoid:ChangeState(Enum.HumanoidStateType.Running)
+					elseif HumanoidState == "Seated" and Humanoid:GetState() ~= Enum.HumanoidStateType.Seated then
+						Humanoid:ChangeState(Enum.HumanoidStateType.Seated)
+					elseif HumanoidState == "Climbing" and Humanoid:GetState() ~= Enum.HumanoidStateType.Climbing then
+						Humanoid:ChangeState(Enum.HumanoidStateType.Climbing)
+					elseif HumanoidState == "Jumping" and Humanoid:GetState() ~= Enum.HumanoidStateType.Jumping then
+						Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+					elseif HumanoidState == "Freefall" and Humanoid:GetState() ~= Enum.HumanoidStateType.Freefall then
+						Humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
+					elseif HumanoidState == "FallingDown" and Humanoid:GetState() ~= Enum.HumanoidStateType.FallingDown then
+						Humanoid:ChangeState(Enum.HumanoidStateType.FallingDown)
+					elseif HumanoidState == "Swimming" and Humanoid:GetState() ~= Enum.HumanoidStateType.Swimming then
+						Humanoid:ChangeState(Enum.HumanoidStateType.Swimming)
+					end
+					RunService.RenderStepped:Wait()
 				end
 			end)
 			
@@ -454,9 +488,7 @@ do
 	        if type(Table) == "table" then
 	            pcall(function()
 	                if type(Table.SetCameraToSubjectDistance) == "function" 
-					and type(Table.GetCameraToSubjectDistance) == "function"
-					and Table.FIRST_PERSON_DISTANCE_THRESHOLD
-					and Table.lastCameraTransform then
+					and type(Table.GetCameraToSubjectDistance) == "function" then
 	                    table.insert(ZoomControllers, Table)
 	                end
 	            end)
@@ -578,6 +610,7 @@ do
 	
 	-- Connections
 	UserInputService.InputBegan:Connect(function(Input)
+		if UserInputService:GetFocusedTextBox() then return end
 	    if Input.KeyCode == GetKeyCode(Controls.Wipe) then
 	        Frames = {}
 	        Index = 1
@@ -609,7 +642,7 @@ do
 	        LoadTas(tostring(States.Tas))
 
 		elseif Input.KeyCode == GetKeyCode(Controls.AdvanceFrame) then
-			if Frozen and States.Writing and not States.Reading then
+			if States.Writing and not States.Reading then
 				States.Frozen = false
 			end
 			task.wait(0.1)
@@ -638,6 +671,7 @@ do
 	end)
 	
 	UserInputService.InputEnded:Connect(function(Input)
+		if UserInputService:GetFocusedTextBox() then return end
 	    if Input.KeyCode == GetKeyCode(Controls.LoopForward) then
 	        States.LoopingForward = false
 	    elseif Input.KeyCode == GetKeyCode(Controls.LoopBackward) then
@@ -671,6 +705,8 @@ do
 	                Camera.CFrame = Frame.Camera
 					Pose = Frame.Pose
 	                SetZoom(Frame.Zoom)
+					Humanoid:ChangeState(Enum.HumanoidStateType[Frame.State])
+					HumanoidState = tostring(Frame.State)
 	            end
 	        end
 	        RunService.RenderStepped:Wait()
@@ -690,7 +726,8 @@ do
 					MousePosition = UserInputService:GetMouseLocation(),
 	                Shiftlock = GetShiftlock(),
 	                Zoom = GetZoom(),
-					Pose = Pose
+					Pose = Pose,
+					State = Humanoid:GetState().Name
 	            })
 	            Index = Index + 1
 	        end
@@ -709,6 +746,7 @@ do
 						HumanoidRootPart.AssemblyLinearVelocity = Frame.AssemblyLinearVelocity
 						HumanoidRootPart.AssemblyAngularVelocity = Frame.AssemblyAngularVelocity
 						Camera.CFrame = Frame.Camera
+						Humanoid:ChangeState(Enum.HumanoidStateType[Frame.State])
 					end
 				end
 			end
