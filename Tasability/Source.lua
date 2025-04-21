@@ -405,7 +405,6 @@ do
 					return 
 				end
 				
-				StopAllAnimations(Humanoid)
 				Pose = "FallingDown"
 			end)
 
