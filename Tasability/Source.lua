@@ -440,7 +440,7 @@ do
 			
 			task.spawn(function()
 				while true do
-					if States.Reading and Humanoid then
+					if States.Reading then
 						if HumanoidState == "Running" and Humanoid:GetState() ~= Enum.HumanoidStateType.Running then
 							Humanoid:ChangeState(Enum.HumanoidStateType.Running)
 						elseif HumanoidState == "Seated" and Humanoid:GetState() ~= Enum.HumanoidStateType.Seated then
@@ -456,6 +456,8 @@ do
 						elseif HumanoidState == "Swimming" and Humanoid:GetState() ~= Enum.HumanoidStateType.Swimming then
 							Humanoid:ChangeState(Enum.HumanoidStateType.Swimming)
 						end
+					else
+						Humanoid:ChangeState(Enum.HumanoidStateType.None)
 					end
 					RunService.RenderStepped:Wait()
 				end
