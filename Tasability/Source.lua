@@ -746,7 +746,8 @@ end
 	Some Script are taken by original Replayability so credit to the owner who i taken
 	
 	Tasability V1.3
-	[+] Bypassed Some Anticheats
-	[+] Added Animation Functions
-	[+] Added QOL Features (Settings, Keybinds)
+		[+] Bypassed Some Anticheats
+		[+] Added Animation Functions
+		[+] Added QOL Features (Settings, Keybinds)
+		[-] Unable to fix Crashes upon execution due to Unknown
 ]]
