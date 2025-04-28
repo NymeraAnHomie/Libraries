@@ -42,7 +42,7 @@ local Cursors = {
 
 
 -- Constants
-local Version = "V1.2"
+local Version = "V1.3"
 local Title = "Tasability " .. tostring(Version)
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
@@ -578,7 +578,11 @@ do
 	end
 	
 	-- Connections
-	UserInputService.InputBegan:Connect(function(Input)
+	UserInputService.InputBegan:Connect(function(Input, GameProcessed)
+	    if GameProcessed or UserInputService:GetFocusedTextBox() then
+	        return
+	    end
+	
 	    if Input.KeyCode == GetKeyCode(Controls.Wipe) then
 	        Frames = {}
 	        Index = 1
@@ -588,8 +592,8 @@ do
 	        Notify("Action", "Wiped and state are set to none.", 3)
 	
 	    elseif Input.KeyCode == GetKeyCode(Controls.Frozen) then
-			States.Frozen = not States.Frozen
-			States.Writing = not States.Frozen
+	        States.Frozen = not States.Frozen
+	        States.Writing = not States.Frozen
 	
 	    elseif Input.KeyCode == GetKeyCode(Controls.Spectate) then
 	        States.Frozen = false
@@ -608,37 +612,41 @@ do
 	        States.Writing = false
 	        States.Frozen = false
 	        LoadTas(tostring(States.Tas))
-
-		elseif Input.KeyCode == GetKeyCode(Controls.AdvanceFrame) then
-			if States.Writing and not States.Reading then
-				States.Frozen = false
-			end
-			task.wait(0.1)
-			States.Frozen = true
-
-	    elseif Input.KeyCode == GetKeyCode(Controls.Forward) then -- Move 1 Frame Forward
-		    States.Writing = true
-		    States.Frozen = true
-			SetFrame(Index + 1)
-			
-		elseif Input.KeyCode == GetKeyCode(Controls.Backward) then -- Move 1 Frame Backward
-		    States.Writing = true
-		    States.Frozen = true
-			SetFrame(Index - 1)
-			
-	    elseif Input.KeyCode == GetKeyCode(Controls.LoopForward) then -- Seek Forward
-		    States.LoopingForward = true
-		    States.Frozen = true
-			States.Writing = true
-			
-		elseif Input.KeyCode == GetKeyCode(Controls.LoopBackward) then -- Seek Backward
-		    States.LoopingBackward = true
-		    States.Frozen = true
-			States.Writing = true
+	
+	    elseif Input.KeyCode == GetKeyCode(Controls.AdvanceFrame) then
+	        if States.Writing and not States.Reading then
+	            States.Frozen = false
+	        end
+	        task.wait(0.1)
+	        States.Frozen = true
+	
+	    elseif Input.KeyCode == GetKeyCode(Controls.Forward) then
+	        States.Writing = true
+	        States.Frozen = true
+	        SetFrame(Index + 1)
+	
+	    elseif Input.KeyCode == GetKeyCode(Controls.Backward) then
+	        States.Writing = true
+	        States.Frozen = true
+	        SetFrame(Index - 1)
+	
+	    elseif Input.KeyCode == GetKeyCode(Controls.LoopForward) then
+	        States.LoopingForward = true
+	        States.Frozen = true
+	        States.Writing = true
+	
+	    elseif Input.KeyCode == GetKeyCode(Controls.LoopBackward) then
+	        States.LoopingBackward = true
+	        States.Frozen = true
+	        States.Writing = true
 	    end
 	end)
 	
-	UserInputService.InputEnded:Connect(function(Input)
+	UserInputService.InputEnded:Connect(function(Input, GameProcessed)
+	    if GameProcessed or UserInputService:GetFocusedTextBox() then
+	        return
+	    end
+	
 	    if Input.KeyCode == GetKeyCode(Controls.LoopForward) then
 	        States.LoopingForward = false
 	    elseif Input.KeyCode == GetKeyCode(Controls.LoopBackward) then
@@ -732,3 +740,13 @@ do
 	    Humanoid = char:WaitForChild("Humanoid")
 	end)
 end
+
+--[[
+	Source by nymera_src
+	Some Script are taken by original Replayability so credit to the owner who i taken
+	
+	Tasability V1.3
+	[+] Bypassed Some Anticheats
+	[+] Added Animation Functions
+	[+] Added QOL Features (Settings, Keybinds)
+]]
