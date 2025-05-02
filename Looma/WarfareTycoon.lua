@@ -752,6 +752,9 @@ LPH_NO_VIRTUALIZE(function() -- UI Creation
 	    end
 	end
 	
+	local Whole = 515
+	local Even = 180
+	local Half = Whole / 2.035
 	local window = library:Window({Name = "Looma"})
 	
 	local legit = window:Page({Name = "Legit"})
@@ -760,20 +763,20 @@ LPH_NO_VIRTUALIZE(function() -- UI Creation
 	local misc = window:Page({Name = "Misc"})
 	local settings = window:Page({Name = "Settings"})
 	
-	local aimbot, fovsettings = legit:MultiSection({Sections = {"Aim Assist", "FOV Settings"}, Zindex = 5, Side = "Left", Size = 220})
-	local slientaim = legit:Section({Name = "Bullet Redirection", Zindex = 5, Side = "Right", Size = 300})
-	local backtrack, hitboxes = legit:MultiSection({Sections = {"Backtracking", "Hitboxes"}, Zindex = 5, Side = "Left", Size = 220})
-	local gunmods = legit:Section({Name = "Gun Mods", Zindex = 5, Side = "Right", Size = 300})
+	local aimbot, fovsettings = legit:MultiSection({Sections = {"Aim Assist", "FOV Settings"}, Zindex = 5, Side = "Left", Size = Half})
+	local slientaim = legit:Section({Name = "Bullet Redirection", Zindex = 5, Side = "Right", Size = Half})
+	local backtrack, hitboxes = legit:MultiSection({Sections = {"Backtracking", "Hitboxes"}, Zindex = 5, Side = "Left", Size = Half})
+	local gunmods = legit:Section({Name = "Gun Mods", Zindex = 5, Side = "Right", Size = Half})
 	
-	local ragebot, knifebot = rage:MultiSection({Sections = {"Rage Bot", "Knife Bot"}, Zindex = 5, Side = "Left", Size = 515})
-	local antiaim = rage:Section({Name = "Anti Aim", Zindex = 5, Side = "Right", Size = 515})
-	local thirdperson = rage:Section({Name = "Third Person", Zindex = 5, Side = "Left", Size = 515})
+	local ragebot, knifebot = rage:MultiSection({Sections = {"Rage Bot", "Knife Bot"}, Zindex = 5, Side = "Left", Size = Half})
+	local antiaim = rage:Section({Name = "Anti Aim", Zindex = 5, Side = "Right", Size = Whole})
+	local thirdperson = rage:Section({Name = "Third Person", Zindex = 5, Side = "Left", Size = Half})
 	
-	local enemyesp, espoptions = visuals:MultiSection({Sections = {"Enemy ESP", "ESP Options"}, Zindex = 5, Side = "Left", Size = 515})
-	local chams, worldvisuals = visuals:MultiSection({Sections = {"Chams", "World Visuals"}, Zindex = 5, Side = "Right", Size = 300})
+	local enemyesp, espoptions = visuals:MultiSection({Sections = {"Enemy ESP", "ESP Options"}, Zindex = 5, Side = "Left", Size = Whole})
+	local chams, worldvisuals = visuals:MultiSection({Sections = {"Chams", "World Visuals"}, Zindex = 5, Side = "Right", Size = Whole})
 	
-	local movement = misc:Section({Name = "Movement", Zindex = 5, Side = "Left", AutoSize = true})
-	local tweaks = misc:Section({Name = "Tweaks", Zindex = 5, Side = "Right", AutoSize = true})
+	local movement = misc:Section({Name = "Movement", Zindex = 5, Side = "Left", Size = Half})
+	local tweaks = misc:Section({Name = "Tweaks", Zindex = 5, Side = "Right", Size = Half})
 	
 	aimbot:Toggle({Name = "Enabled", Flag = "aimbot_enabled"}):Keybind({Flag = "aimbot_keybind"})
 	aimbot:Toggle({Name = "Visible Check", Flag = "aimbot_visible_check"})
@@ -876,8 +879,8 @@ LPH_NO_VIRTUALIZE(function() -- UI Creation
 	tweaks:Button({Name = "Capture All Hardpoints", Callback = getCallback("Tweaks%%Capture All Hardpoints")})
 	
 	local playerlist = settings:PlayerList({flag = "current_playerlist", path = folderName})
-	local config = settings:Section({Name = "Configuration", Zindex = 5, Side = "Left", Size = 180})
-	local cheatsettings = settings:Section({Name = "Interface", Zindex = 5, Side = "Right", Size = 180})
+	local config = settings:Section({Name = "Configuration", Zindex = 5, Side = "Left", Size = Even})
+	local cheatsettings, interactions = settings:MultiSection({Sections = {"Interface", "Interactions"}, Zindex = 5, Side = "Right", Size = Even})
 	
 	local function getConfigNames()
 	    local files = listfiles(folderName .. "/warfare tycoon/configs")
@@ -920,6 +923,10 @@ LPH_NO_VIRTUALIZE(function() -- UI Creation
     end})
     cheatsettings:Toggle({Name = "Keybind Lists", Flag = "menu_keybind_lists"})
 	cheatsettings:Button({Name = "Unload", Callback = unloadCheat})
+
+	interactions:Button({Name = "Teleport To", Callback = function()
+
+	end})
 	
 	do if game:GetService("UserInputService").TouchEnabled then
 		local ScreenGui = Instance.new("ScreenGui")
