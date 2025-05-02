@@ -411,7 +411,7 @@ LPH_JIT_MAX(function() -- Main Cheat
 	    slientaimfov.Color = state
 	end
 	
-	callbackList["Tweaks%%Capture All Hardpoints"] = function()
+	callbackList["Extras%%Capture All Hardpoints"] = function()
         for _, hardpoints in ipairs(workspace.Hardpoints:GetChildren()) do
             hardpoints:SetAttribute("CapturingProgress", 1)
             hardpoints:SetAttribute("OwningTeam", tostring(localplayer.Team))
@@ -773,7 +773,7 @@ LPH_NO_VIRTUALIZE(function() -- UI Creation
 	local chams, worldvisuals = visuals:MultiSection({Sections = {"Chams", "World Visuals"}, Zindex = 5, Side = "Right", Size = Whole})
 	
 	local movement = misc:Section({Name = "Movement", Zindex = 5, Side = "Left", Size = Half})
-	local tweaks = misc:Section({Name = "Tweaks", Zindex = 5, Side = "Right", Size = Half})
+	local extras = misc:Section({Name = "Extras", Zindex = 5, Side = "Right", Size = Half})
 	
 	aimbot:Toggle({Name = "Enabled", Flag = "aimbot_enabled"}):Keybind({Flag = "aimbot_keybind"})
 	aimbot:Toggle({Name = "Visible Check", Flag = "aimbot_visible_check"})
@@ -878,8 +878,13 @@ LPH_NO_VIRTUALIZE(function() -- UI Creation
 	movement:Slider({Name = "Current Power", Flag = "movement_jump_power_amount", Suffix = " Studs/Second", Default = 50, Min = 1, Max = 250, Decimals = 0.01})
 	movement:Toggle({Name = "Remove jump cooldown", Flag = "movement_remove_jumpcd"})
 	
-	tweaks:Button({Name = "Capture All Hardpoints", Callback = getCallback("Tweaks%%Capture All Hardpoints")})
-	
+	extras:Toggle({Name = "Auto Spot", Flag = "extras_autospot"})
+	extras:Toggle({Name = "Unlock All Firearms", Callback = getCallback("Extras%%Unlock All Firearms")})
+	extras:Toggle({Name = "Unlock All Attachments", Callback = getCallback("Extras%%Unlock All Attachments")})
+	extras:Toggle({Name = "Unlock All Knives", Callback = getCallback("Extras%%Unlock All Knives")})
+	extras:Toggle({Name = "Unlock All Vehicles/Helicopter", Callback = getCallback("Extras%%Unlock All Vehicles/Helicopter")})
+	extras:Button({Name = "Capture All Hardpoints", Callback = getCallback("Extras%%Capture All Hardpoints")})
+
 	local playerlist = settings:PlayerList({flag = "current_playerlist", path = folderName})
 	local config = settings:Section({Name = "Configuration", Zindex = 5, Side = "Left", Size = Even})
 	local cheatsettings, interactions = settings:MultiSection({Sections = {"Interface", "Interactions"}, Zindex = 5, Side = "Right", Size = Even})
