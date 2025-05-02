@@ -683,17 +683,15 @@ LPH_JIT_MAX(function() -- Main Cheat
 	
 	localplayer.Character.Humanoid.StateChanged:Connect(function(_, state)
 		if state == Enum.HumanoidStateType.Running or state == Enum.HumanoidStateType.RunningNoPhysics then
-			if flags["movement_walk_speed"] and flags["movement_walk_speed_keybind"] then
+			if flags["movement_walk_speed"] then
 				local speeds = {"SlowPace", "Crouch", "Normal", "Aim", "Run", "AdsMoveSpeed"}
 				for _, speedType in pairs(speeds) do
 					hydroxide.rawset(playerWeapon, "GunFx", weaponObject.movement, 4, speedType .. "WalkSpeed", flags["movement_walk_speed_amount"])
 				end
 			end
-		elseif state == Enum.HumanoidStateType.Jumping then
+		elseif state == Enum.HumanoidStateType.Jumping or Enum.HumanoidStateType.Freefall then
 			hydroxide.rawset(playerWeapon, "GunFx", weaponObject.movement, 4, "JumpPower", flags["movement_jump_power_keybind"] and flags["movement_jump_power_amount"] or 16)
 			hydroxide.rawset(playerWeapon, "GunFx", weaponObject.movement, 4, "JumpCoolDown", flags["movement_remove_jumpcd"] and 0 or 0.2)
-		else
-			
 		end
 	end)
 	
@@ -870,9 +868,9 @@ LPH_NO_VIRTUALIZE(function() -- UI Creation
 	worldvisuals:Slider({Name = "Impact Points Size", Flag = "world_visuals_impact_points_size", Suffix = " Studs", Default = 0.5, Min = 0, Max = 2, Decimals = 0.01})
 	worldvisuals:Slider({Name = "Duration", Flag = "world_visuals_duration", Suffix = " Seconds", Default = 3, Min = 0, Max = 5, Decimals = 0.01})
 	
-	movement:Toggle({Name = "Walk Speed", Flag = "movement_walk_speed"}):Keybind({Flag = "movement_walk_speed_keybind"})
+	movement:Toggle({Name = "Walk Speed", Flag = "movement_walk_speed"})
 	movement:Slider({Name = "Current Speed", Flag = "movement_walk_speed_amount", Suffix = " Studs/Second", Default = 50, Min = 1, Max = 250, Decimals = 0.01})
-	movement:Toggle({Name = "Jump Power", Flag = "movement_jump_power"}):Keybind({Flag = "movement_jump_power_keybind"})
+	movement:Toggle({Name = "Jump Power", Flag = "movement_jump_power"})
 	movement:Slider({Name = "Current Power", Flag = "movement_jump_power_amount", Suffix = " Studs/Second", Default = 50, Min = 1, Max = 250, Decimals = 0.01})
 	movement:Toggle({Name = "Remove jump cooldown", Flag = "movement_remove_jumpcd"})
 	
