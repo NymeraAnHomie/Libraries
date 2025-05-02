@@ -36,7 +36,6 @@ local Cursors = {
 
 
 
-
 -- End of config
 
 
@@ -73,6 +72,12 @@ local Cursor = Instance.new("ImageLabel", CursorHolder)
 local CursorIcon = nil
 local CursorSize = nil
 local CursorOffset = nil -- UserInputService:GetMouseLocation()
+local LastEmote = nil
+local EmotePlaying = nil
+local LastPlayedEmote = nil
+--local PlayerModule = LocalPlayer.PlayerScripts:WaitForChild("PlayerModule")
+--local ShiftLockBoundKeys = PlayerModule:WaitForChild("CameraModule"):WaitForChild("MouseLockController"):WaitForChild("BoundKeys")
+local ShiftLockEnabled = false
 local Pose = ""
 local HumanoidState = ""
 
@@ -147,6 +152,15 @@ do
 		    return Vector3.new(unpack(data))
 		end
 		
+		function WipeTasData()
+			Frames = {}
+	        Index = 1
+	        States.Frozen = false
+	        States.Writing = false
+	        States.Reading = false
+	        Notify("Action", "Wiped and state are set to none.", 3)
+		end
+		
 		function LoadTas(fileName)
 		    local filePath = "Tasability/PC/Files/" .. fileName .. ".json"
 		    if isfile(filePath) then
@@ -154,6 +168,8 @@ do
 		        local loadedFrames = HttpService:JSONDecode(fileData)
 		
 		        Frames = {}
+				Index = 1
+				
 		        for _, frameData in ipairs(loadedFrames) do
 		            table.insert(Frames, {
 		                CFrame = DeserializeCFrame(frameData.CFrame),
@@ -165,11 +181,11 @@ do
 						Shiftlock = frameData.Shiftlock,
 						Zoom = frameData.Zoom,
 						Pose = frameData.Pose,
-						State = frameData.State
+						State = frameData.State,
+						Emote = frameData.Emote
 		            })
 		        end
 		        
-		        Index = 1
 		        States.Reading = true
 		        States.Writing = false
 		        States.Frozen = false
@@ -195,12 +211,30 @@ do
 				    Shiftlock = frame.Shiftlock,
 					Zoom = frame.Zoom,
 					Pose = frame.Pose,
-					State = frame.State
+					State = frame.State,
+					Emote = frame.Emote
 				})
 		    end
 		
 		    writefile(path, HttpService:JSONEncode(serializedFrames))
 		    Notify("Action", "TAS saved/overwrite.", 3)
+		end
+	end
+	
+	-- Utility Functions
+	local Utility = {}
+	do
+		function Utility.CreateInstance(ClassName, Parent, Properties)
+			local instance = Instance.new(ClassName)
+			if Parent then
+				instance.Parent = Parent
+			end
+			if Properties then
+				for property, value in pairs(Properties) do
+					instance[property] = value
+				end
+			end
+			return instance
 		end
 	end
 	
@@ -273,6 +307,11 @@ do
 			Cheer = { { Id = "http://www.roblox.com/asset/?id=129423030", Weight = 10 } }
 		}
 		
+		local AnimNameLookup = {}
+		for name in pairs(AnimNames) do
+			AnimNameLookup[string.lower(name)] = name
+		end
+		
 		local EmoteNames = { wave = false, point = false, dance1 = true, dance2 = true, dance3 = true, laugh = false, cheer = false}
 		local ToolAnim = "None"
 		local ToolAnimTime = 0
@@ -332,6 +371,7 @@ do
 					CurrentAnimTrack.Priority = Enum.AnimationPriority.Action
 					CurrentAnimTrack:Play(TransitionTime)
 					CurrentAnimInstance = Anim
+					EmotePlaying = AnimName
 				end
 			end
 			
@@ -439,11 +479,30 @@ do
 			end)
 			
 			LocalPlayer.Chatted:Connect(function(message)
-		        local args = string.split(message, " ")
-		        if args[1] == "/e" and AnimNames[args[2]] then
-		            PlayAnimation(args[2], 0.1, Humanoid)
-		        end
-		    end)
+				local args = string.split(message:lower(), " ")
+				local command = args[1]
+				local input = args[2] or ""
+				local inputNum = tonumber(input)
+			
+				if command == "/e" then
+					local emoteName = nil
+			
+					if input == "dance" then
+						emoteName = "Dance1"
+					elseif input == "wave" or input == "point" or input == "laugh" or input == "cheer" then
+						emoteName = AnimNameLookup[input]
+					elseif input == "dance1" or input == "dance2" or input == "dance3" then
+						emoteName = AnimNameLookup[input]
+					elseif input == "dance" and inputNum then
+						emoteName = AnimNameLookup["dance" .. inputNum]
+					end
+			
+					if emoteName then
+						PlayAnimation(emoteName, 0.1, Humanoid)
+						LastEmote = emoteName
+					end
+				end
+			end)
 		
 			PlayAnimation("Idle", 0.1, Humanoid)
 			Pose = "Standing"
@@ -491,6 +550,18 @@ do
 	    end
 	end
 	
+	function SetShiftLock(Bool)
+		if ShiftLockEnabled ~= Bool then
+			ShiftLockEnabled = Bool
+			if Bool then
+				SetCursor("MouseLockedCursor")
+			else
+				SetCursor("ArrowFarCursor")
+			end
+			ContextActionService:CallFunction("MouseLockSwitchAction", Enum.UserInputState.Begin, game)
+		end
+	end
+	
 	local function SetCursor(CursorName, StayinMiddle)
 		local CursorData = Cursors[CursorName]
 		CursorIcon = CursorData.Icon
@@ -521,9 +592,9 @@ do
 		HumanoidRootPart.Velocity = Frame.Velocity
 		HumanoidRootPart.AssemblyLinearVelocity = Frame.AssemblyLinearVelocity
 		HumanoidRootPart.AssemblyAngularVelocity = Frame.AssemblyAngularVelocity
-
 		Camera.CFrame = Frame.Camera
 		SetZoom(Frame.Zoom)
+		Humanoid:ChangeState(Enum.HumanoidStateType[Frame.State])
 
 		for i = #Frames, index + 1, -1 do
 			if States.Writing and not States.LoopingForward then
@@ -572,9 +643,209 @@ do
 		local Settings = Window:MakeTab({Name = "Settings", Icon = "rbxassetid://10734950309"})
 		Settings:AddToggle({Name = "Disable Tasability Notification", Save = true, Flag = "Disable Tasability Notifications"})
 		Settings:AddToggle({Name = "Disable Finish Notification", Save = true, Flag = "Disable Finish Notifications"})
+		Settings:AddToggle({Name = "Disable Frozen Mode Lock Camera", Save = true, Flag = "Disable Frozen Mode Lock Camera"})
+		if UserInputService.TouchEnabled then
+			Settings:AddButton({Name = "Wipe All Frame (Mobile)", Callback = function()
+			    WipeTasData()
+			end})
+		end
 		Settings:AddButton({Name = "Unload", Callback = function()
 		    OrionLib:Destroy()
 		end})
+	end
+	
+	do
+	if UserInputService.TouchEnabled then
+		local tas = Utility.CreateInstance("ScreenGui", game:GetService("CoreGui"), {
+		    Name = "tas",
+		    IgnoreGuiInset = true
+		})
+		
+		local SForward = Utility.CreateInstance("TextButton", tas, {
+		    Name = "SForward",
+		    Text = ">",
+		    TextWrapped = true,
+		    TextStrokeTransparency = 0,
+		    BorderSizePixel = 0,
+		    TextScaled = true,
+		    BackgroundColor3 = Color3.new(0.05, 0.05, 0.05),
+		    FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal),
+		    TextSize = 40,
+		    Size = UDim2.new(0.04, 0, 0.08, 0),
+		    TextColor3 = Color3.new(1, 1, 1),
+		    BorderColor3 = Color3.new(0, 0, 0),
+		    Position = UDim2.new(0.09, 0, 0.46, 0)
+		})
+		
+		local SBackward = Utility.CreateInstance("TextButton", tas, {
+		    Name = "SBackward",
+		    Text = "<",
+		    TextWrapped = true,
+		    TextStrokeTransparency = 0,
+		    BorderSizePixel = 0,
+		    TextScaled = true,
+		    BackgroundColor3 = Color3.new(0.05, 0.05, 0.05),
+		    FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal),
+		    TextSize = 40,
+		    Size = UDim2.new(0.04, 0, 0.08, 0),
+		    TextColor3 = Color3.new(1, 1, 1),
+		    BorderColor3 = Color3.new(0, 0, 0),
+		    Position = UDim2.new(0.04, 0, 0.46, 0)
+		})
+		
+		local Forward = Utility.CreateInstance("TextButton", tas, {
+		    Name = "Forward",
+		    Text = ">>",
+		    TextWrapped = true,
+		    TextStrokeTransparency = 0,
+		    BorderSizePixel = 0,
+		    TextScaled = true,
+		    BackgroundColor3 = Color3.new(0.05, 0.05, 0.05),
+		    FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal),
+		    TextSize = 40,
+		    Size = UDim2.new(0.04, 0, 0.08, 0),
+		    TextColor3 = Color3.new(1, 1, 1),
+		    BorderColor3 = Color3.new(0, 0, 0),
+		    Position = UDim2.new(0.09, 0, 0.55, 0)
+		})
+		
+		local Backward = Utility.CreateInstance("TextButton", tas, {
+		    Name = "Backward",
+		    Text = "<<",
+		    TextWrapped = true,
+		    TextStrokeTransparency = 0,
+		    BorderSizePixel = 0,
+		    TextScaled = true,
+		    BackgroundColor3 = Color3.new(0.05, 0.05, 0.05),
+		    FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal),
+		    TextSize = 40,
+		    Size = UDim2.new(0.04, 0, 0.08, 0),
+		    TextColor3 = Color3.new(1, 1, 1),
+		    BorderColor3 = Color3.new(0, 0, 0),
+		    Position = UDim2.new(0.04, 0, 0.55, 0)
+		})
+		
+		local Pause = Utility.CreateInstance("TextButton", tas, {
+		    Name = "Pause",
+		    Text = "Pause/Froze",
+		    TextWrapped = true,
+		    TextStrokeTransparency = 0,
+		    BorderSizePixel = 0,
+		    TextScaled = true,
+		    BackgroundColor3 = Color3.new(0.05, 0.05, 0.05),
+		    FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal),
+		    TextSize = 40,
+		    Size = UDim2.new(0.04, 0, 0.08, 0),
+		    TextColor3 = Color3.new(1, 1, 1),
+		    BorderColor3 = Color3.new(0, 0, 0),
+		    Position = UDim2.new(0.14, 0, 0.45, 0)
+		})
+		
+		local One = Utility.CreateInstance("TextButton", tas, {
+		    Name = "One",
+		    Text = "1",
+		    TextWrapped = true,
+		    TextStrokeTransparency = 0,
+		    BorderSizePixel = 0,
+		    TextScaled = true,
+		    BackgroundColor3 = Color3.new(0.05, 0.05, 0.05),
+		    FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal),
+		    TextSize = 40,
+		    Size = UDim2.new(0.04, 0, 0.08, 0),
+		    TextColor3 = Color3.new(1, 1, 1),
+		    BorderColor3 = Color3.new(0, 0, 0),
+		    Position = UDim2.new(0.04, 0, 0.36, 0)
+		})
+		
+		local Two = Utility.CreateInstance("TextButton", tas, {
+		    Name = "Two",
+		    Text = "2",
+		    TextWrapped = true,
+		    TextStrokeTransparency = 0,
+		    BorderSizePixel = 0,
+		    TextScaled = true,
+		    BackgroundColor3 = Color3.new(0.05, 0.05, 0.05),
+		    FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal),
+		    TextSize = 40,
+		    Size = UDim2.new(0.04, 0, 0.08, 0),
+		    TextColor3 = Color3.new(1, 1, 1),
+		    BorderColor3 = Color3.new(0, 0, 0),
+		    Position = UDim2.new(0.09, 0, 0.36, 0)
+		})
+		
+		local Three = Utility.CreateInstance("TextButton", tas, {
+		    Name = "Three",
+		    Text = "3",
+		    TextWrapped = true,
+		    TextStrokeTransparency = 0,
+		    BorderSizePixel = 0,
+		    TextScaled = true,
+		    BackgroundColor3 = Color3.new(0.05, 0.05, 0.05),
+		    FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal),
+		    TextSize = 40,
+		    Size = UDim2.new(0.04, 0, 0.08, 0),
+		    TextColor3 = Color3.new(1, 1, 1),
+		    BorderColor3 = Color3.new(0, 0, 0),
+		    Position = UDim2.new(0.14, 0, 0.36, 0)
+		})
+		
+		SForward.MouseButton1Click:Connect(function()
+			States.Writing = true
+	        States.Frozen = true
+	        SetFrame(Index + 1)
+		end)
+		
+		SBackward.MouseButton1Click:Connect(function()
+			States.Writing = true
+	        States.Frozen = true
+			SetFrame(Index - 1)
+		end)
+		
+		Pause.MouseButton1Click:Connect(function()
+	        States.Frozen = not States.Frozen
+	        States.Writing = not States.Frozen
+		end)
+		
+		One.MouseButton1Click:Connect(function()
+	        States.Frozen = false
+	        States.Writing = false
+	        States.Reading = false
+	        States.Navigating = false
+	        Notify("Action", "State set to None.", 3)
+		end)
+		
+		Two.MouseButton1Click:Connect(function()
+	        States.Writing = true
+	        States.Frozen = true
+	        Notify("Writing Mode", "Now in writing mode.", 3)
+		end)
+		
+		Three.MouseButton1Click:Connect(function()
+	        LoadTas(tostring(States.Tas))
+		end)
+		
+		Forward.MouseButton1Down:Connect(function()
+			States.LoopingForward = true
+			States.LoopingBackward = false
+			States.Frozen = true
+			States.Writing = true
+		end)
+		
+		Forward.MouseButton1Up:Connect(function()
+			States.LoopingForward = false
+		end)
+		
+		Backward.MouseButton1Down:Connect(function()
+			States.LoopingBackward = true
+			States.LoopingForward = false
+			States.Frozen = true
+			States.Writing = true
+		end)
+		
+		Backward.MouseButton1Up:Connect(function()
+			States.LoopingBackward = false
+		end)
+	end
 	end
 	
 	-- Connections
@@ -584,59 +855,44 @@ do
 	    end
 	
 	    if Input.KeyCode == GetKeyCode(Controls.Wipe) then
-	        Frames = {}
-	        Index = 1
-	        States.Frozen = false
-	        States.Writing = false
-	        States.Reading = false
-	        Notify("Action", "Wiped and state are set to none.", 3)
-	
+	        WipeTasData()
 	    elseif Input.KeyCode == GetKeyCode(Controls.Frozen) then
 	        States.Frozen = not States.Frozen
 	        States.Writing = not States.Frozen
-	
 	    elseif Input.KeyCode == GetKeyCode(Controls.Spectate) then
 	        States.Frozen = false
 	        States.Writing = false
 	        States.Reading = false
 	        States.Navigating = false
 	        Notify("Action", "State set to None.", 3)
-	
 	    elseif Input.KeyCode == GetKeyCode(Controls.Create) then
 	        States.Writing = true
 	        States.Frozen = true
 	        Notify("Writing Mode", "Now in writing mode.", 3)
-	
 	    elseif Input.KeyCode == GetKeyCode(Controls.Test) then
-	        States.Reading = true
-	        States.Writing = false
-	        States.Frozen = false
 	        LoadTas(tostring(States.Tas))
-	
 	    elseif Input.KeyCode == GetKeyCode(Controls.AdvanceFrame) then
 	        if States.Writing and not States.Reading then
 	            States.Frozen = false
 	        end
 	        task.wait(0.1)
 	        States.Frozen = true
-	
 	    elseif Input.KeyCode == GetKeyCode(Controls.Forward) then
 	        States.Writing = true
 	        States.Frozen = true
 	        SetFrame(Index + 1)
-	
 	    elseif Input.KeyCode == GetKeyCode(Controls.Backward) then
 	        States.Writing = true
 	        States.Frozen = true
 	        SetFrame(Index - 1)
-	
 	    elseif Input.KeyCode == GetKeyCode(Controls.LoopForward) then
 	        States.LoopingForward = true
+			States.LoopingBackward = false
 	        States.Frozen = true
 	        States.Writing = true
-	
 	    elseif Input.KeyCode == GetKeyCode(Controls.LoopBackward) then
 	        States.LoopingBackward = true
+			States.LoopingForward = false
 	        States.Frozen = true
 	        States.Writing = true
 	    end
@@ -671,19 +927,29 @@ do
 	    while true do
 			pcall(function() -- Sometime old tas file doe not met the option to read causing the script to break
 		        if States.Reading and Index <= #Frames then
-					Index = Index + 1
 		            local Frame = Frames[Index]
 		            if Frame then
-		                HumanoidRootPart.CFrame = Frame.CFrame
-		                HumanoidRootPart.Velocity = Frame.Velocity
-		                HumanoidRootPart.AssemblyLinearVelocity = Frame.AssemblyLinearVelocity
-		                HumanoidRootPart.AssemblyAngularVelocity = Frame.AssemblyAngularVelocity
-		                Camera.CFrame = Frame.Camera
+						HumanoidRootPart.CFrame = Frame.CFrame
+						HumanoidRootPart.Velocity = Frame.Velocity
+						HumanoidRootPart.AssemblyLinearVelocity = Frame.AssemblyLinearVelocity
+						HumanoidRootPart.AssemblyAngularVelocity = Frame.AssemblyAngularVelocity
+						Camera.CFrame = Frame.Camera
 						Pose = Frame.Pose
-		                SetZoom(Frame.Zoom)
+						SetZoom(Frame.Zoom)
+						SetShiftLock(Frame.Shiftlock)
 						Humanoid:ChangeState(Enum.HumanoidStateType[Frame.State])
 						HumanoidState = tostring(Frame.State)
-		            end
+					
+						if Frame.Emote and Frame.Emote ~= LastPlayedEmote then
+							PlayAnimation(Frame.Emote, 0.1, Humanoid)
+							LastPlayedEmote = Frame.Emote
+						end
+					end
+					Index = Index + 1
+					if Index > #Frames then
+						States.Reading = false
+						LastPlayedEmote = nil
+					end
 		        end
 			end)
 	        RunService.RenderStepped:Wait()
@@ -694,18 +960,20 @@ do
 	    while true do
 	        if States.Writing and not States.Reading and not States.Frozen then
 	            table.insert(Frames, {
-	                Frame = Index,
-	                CFrame = HumanoidRootPart.CFrame,
-	                Camera = Camera.CFrame,
-	                Velocity = HumanoidRootPart.Velocity,
-	                AssemblyLinearVelocity = HumanoidRootPart.AssemblyLinearVelocity,
-	                AssemblyAngularVelocity = HumanoidRootPart.AssemblyAngularVelocity,
+					Frame = Index,
+					CFrame = HumanoidRootPart.CFrame,
+					Camera = Camera.CFrame,
+					Velocity = HumanoidRootPart.Velocity,
+					AssemblyLinearVelocity = HumanoidRootPart.AssemblyLinearVelocity,
+					AssemblyAngularVelocity = HumanoidRootPart.AssemblyAngularVelocity,
 					MousePosition = UserInputService:GetMouseLocation(),
-	                Shiftlock = GetShiftlock(),
-	                Zoom = GetZoom(),
+					Shiftlock = GetShiftlock(),
+					Zoom = GetZoom(),
 					Pose = Pose,
-					State = Humanoid:GetState().Name
-	            })
+					State = Humanoid:GetState().Name,
+					Emote = LastEmote or nil
+				})
+				LastEmote = nil
 	            Index = Index + 1
 	        end
 	        RunService.RenderStepped:Wait()
@@ -723,8 +991,10 @@ do
 							HumanoidRootPart.Velocity = Frame.Velocity
 							HumanoidRootPart.AssemblyLinearVelocity = Frame.AssemblyLinearVelocity
 							HumanoidRootPart.AssemblyAngularVelocity = Frame.AssemblyAngularVelocity
-							Camera.CFrame = Frame.Camera
 							Humanoid:ChangeState(Enum.HumanoidStateType[Frame.State])
+							if not OrionLib.Flags["Disable Frozen Mode Lock Camera"].Value then
+								Camera.CFrame = Frame.Camera
+							end
 						end
 					end
 				end
@@ -742,12 +1012,12 @@ do
 end
 
 --[[
-	Source by nymera_src
+	Source or Owner by nymera_src
 	Some Script are taken by original Replayability so credit to the owner who i taken
 	
 	Tasability V1.3
-		[+] Bypassed Some Anticheats
-		[+] Added Animation Functions
-		[+] Added QOL Features (Settings, Keybinds)
-		[-] Unable to fix Crashes upon execution due to Unknown
+	[+] Bypassed Some Anticheats
+	[+] Added Animation Functions
+	[+] Added QOL Features (Settings, Keybinds)
+	[+] Added Mobile Support
 ]]
