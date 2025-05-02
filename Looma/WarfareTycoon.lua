@@ -251,6 +251,25 @@ LPH_JIT_MAX(function() -- Main Cheat
 			hydroxide.rawset(playerWeapon, "ADS", weaponObject.aiming, 3, "MuzzleVelocity", 25000)
 		end
 	end
+
+	function playerObject.applyModifications(player)
+		if not player then return end
+
+		if flags["movement_walk_speed"] then
+			local speeds = {"SlowPace", "Crouch", "Normal", "Aim", "Run", "AdsMoveSpeed"}
+			for _, speedType in pairs(speeds) do
+				hydroxide.rawset(player, "GunFx", weaponObject.movement, 4, speedType .. "WalkSpeed", flags["movement_walk_speed_amount"])
+			end
+		end
+
+		if flags["movement_jump_power"] then
+			hydroxide.rawset(player, "GunFx", weaponObject.movement, 4, "JumpPower", flags["movement_jump_power_amount"] or 16)
+		end
+
+		if flags["movement_remove_jumpcd"] then
+			hydroxide.rawset(player, "GunFx", weaponObject.movement, 4, "JumpCoolDown", flags["movement_remove_jumpcd"] and 0 or 0.2)
+		end
+	end
 	
 	local function fireproximityprompt(ProximityPrompt, Skip)
 	    assert(ProximityPrompt, "Argument #1 Missing or nil")
@@ -621,22 +640,29 @@ LPH_JIT_MAX(function() -- Main Cheat
 	end)))
 	
 	local stillGoing = true
-	local playerWeapon = nil
+	local acsClient = nil
 	
-	local function refreshPlayerWeapon()
-		if localplayer.character and localplayer.character:FindFirstChild("ACS_Client") then
-			playerWeapon = localplayer.character.ACS_Client:FindFirstChild("ACS_Framework")
+	local function refreshACSClient()
+		if localplayer.Character and localplayer.Character:FindFirstChild("ACS_Client") then
+			acsClient = localplayer.Character.ACS_Client:FindFirstChild("ACS_Framework")
 		else
-			playerWeapon = nil
+			acsClient = nil
 		end
 	end
 	
 	task.spawn(function()
-	    while stillGoing do
-	        task.wait(1) -- you would not believe the lag
-	    end
+		while stillGoing do
+			refreshACSClient()
+
+			if acsClient then
+				weaponObject.applyModifications(acsClient)
+				playerObject.applyModifications(acsClient)
+			end
+
+			task.wait(1)
+		end
 	end)
-	
+
 	table.insert(connectionList, camera.ChildAdded:Connect(LPH_NO_VIRTUALIZE(function(model)
 		--viewmodel
 	end)))
@@ -670,30 +696,6 @@ LPH_JIT_MAX(function() -- Main Cheat
 		    end
 		end
 	end)))
-	
-	localplayer.character.ChildAdded:Connect(LPH_NO_VIRTUALIZE(function(instance)
-		if instance:IsA("Tool") then
-			task.wait(0.2)
-			refreshPlayerWeapon()
-			if playerWeapon then
-				weaponObject.applyModifications(playerWeapon)
-			end
-		end
-	end))
-	
-	localplayer.Character.Humanoid.StateChanged:Connect(function(_, state)
-		if state == Enum.HumanoidStateType.Running or state == Enum.HumanoidStateType.RunningNoPhysics then
-			if flags["movement_walk_speed"] then
-				local speeds = {"SlowPace", "Crouch", "Normal", "Aim", "Run", "AdsMoveSpeed"}
-				for _, speedType in pairs(speeds) do
-					hydroxide.rawset(playerWeapon, "GunFx", weaponObject.movement, 4, speedType .. "WalkSpeed", flags["movement_walk_speed_amount"])
-				end
-			end
-		elseif state == Enum.HumanoidStateType.Jumping or Enum.HumanoidStateType.Freefall then
-			hydroxide.rawset(playerWeapon, "GunFx", weaponObject.movement, 4, "JumpPower", flags["movement_jump_power_keybind"] and flags["movement_jump_power_amount"] or 16)
-			hydroxide.rawset(playerWeapon, "GunFx", weaponObject.movement, 4, "JumpCoolDown", flags["movement_remove_jumpcd"] and 0 or 0.2)
-		end
-	end)
 	
 	localplayer.CharacterAdded:Connect(LPH_NO_VIRTUALIZE(function(new)
 		localplayer.Character = new
