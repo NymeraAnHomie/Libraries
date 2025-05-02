@@ -73,6 +73,12 @@ LPH_JIT_MAX(function() -- Main Cheat
         aiming = {"IsAimingDownSights", "IsTurret", "setInProgress", "ADS", "canAim", 0.2},
         ammo = {"Value", "ACS_Settings", "FindFirstChild", "require", "MaxStoredAmmo", "StoredAmmo"}
     }
+	modules.playerObject = {
+        movement = {"IsTurret", "SeatPart", "Parent", "gun", "base", "Handle"},
+        weapon = {"SlidePull", "SlideRelease", "SlideLock", "Stop", "MagIn", "Ammo"},
+        aiming = {"IsAimingDownSights", "IsTurret", "setInProgress", "ADS", "canAim", 0.2},
+        ammo = {"Value", "ACS_Settings", "FindFirstChild", "require", "MaxStoredAmmo", "StoredAmmo"}
+    }
     
     local network = modules.networkClient
 	local weaponObject = modules.weaponObject
@@ -80,9 +86,9 @@ LPH_JIT_MAX(function() -- Main Cheat
 	local playerObject = modules.playerObject
 	
 	for i, value in pairs(modules) do
-	    if i ~= "weaponObject" then
-	        modules[i] = {}
-	    end
+		if i ~= "weaponObject" and type(value) ~= "table" then
+			modules[i] = {}
+		end
 	end
 	
     local players = game:GetService("Players")
@@ -258,16 +264,16 @@ LPH_JIT_MAX(function() -- Main Cheat
 		if flags["movement_walk_speed"] then
 			local speeds = {"SlowPace", "Crouch", "Normal", "Aim", "Run", "AdsMoveSpeed"}
 			for _, speedType in pairs(speeds) do
-				hydroxide.rawset(player, "GunFx", weaponObject.movement, 4, speedType .. "WalkSpeed", flags["movement_walk_speed_amount"])
+				hydroxide.rawset(player, "GunFx", playerObject.movement, 4, speedType .. "WalkSpeed", flags["movement_walk_speed_amount"])
 			end
 		end
 
 		if flags["movement_jump_power"] then
-			hydroxide.rawset(player, "GunFx", weaponObject.movement, 4, "JumpPower", flags["movement_jump_power_amount"] or 16)
+			hydroxide.rawset(player, "GunFx", playerObject.movement, 4, "JumpPower", flags["movement_jump_power_amount"] or 16)
 		end
 
 		if flags["movement_remove_jumpcd"] then
-			hydroxide.rawset(player, "GunFx", weaponObject.movement, 4, "JumpCoolDown", flags["movement_remove_jumpcd"] and 0 or 0.2)
+			hydroxide.rawset(player, "GunFx", playerObject.movement, 4, "JumpCoolDown", flags["movement_remove_jumpcd"] and 0 or 0.2)
 		end
 	end
 	
@@ -652,14 +658,13 @@ LPH_JIT_MAX(function() -- Main Cheat
 	
 	task.spawn(function()
 		while stillGoing do
+			task.wait(1)
 			refreshACSClient()
 
 			if acsClient then
 				weaponObject.applyModifications(acsClient)
 				playerObject.applyModifications(acsClient)
 			end
-
-			task.wait(1)
 		end
 	end)
 
