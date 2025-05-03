@@ -238,36 +238,6 @@ do
 		end
 	end
 	
-	-- Anticheat bypasses
-	do
-		pcall(function() -- Nymera antikick hook
-			local oldNamecall
-			oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-			    local method = getnamecallmethod()
-			    if not checkcaller() and self == LocalPlayer and method == "Kick" then
-			        return warn("u almost got kicked lol")
-			    end
-			    return oldNamecall(self, ...)
-			end)
-		end)
-		pcall(function() -- Practice anticheat bypass
-			ReplicatedStorage.Remotes.Send:Destroy()
-		end)
-		pcall(function() -- Slad anticheat bypass
-			local sendremote = ReplicatedStorage.DefaultChatSystemChatEvents.ChannelNameColorUpdated
-			local oldspawn
-			oldspawn = hookfunction(getrenv().spawn, function(...)
-				if not checkcaller() and (tostring(getcallingscript()) == "Animate" or tostring(getcallingscript()) == "RbxAnimateScript") then
-					return oldspawn(function()
-						
-					end)
-				end
-				return oldspawn(...)
-			end)
-			sendremote:Destroy()
-		end)
-	end
-	
 	-- Animations Functions
 	do
 		local CurrentAnim = ""
@@ -638,12 +608,11 @@ do
 			Notify("Writing Mode", "Now writing at the end of TAS: " .. States.Tas, 3)
 		end})
 		
-		local Keybinds = Window:MakeTab({Name = "Keybinds", Icon = "rbxassetid://10723395457"})
-		
 		local Settings = Window:MakeTab({Name = "Settings", Icon = "rbxassetid://10734950309"})
 		Settings:AddToggle({Name = "Disable Tasability Notification", Save = true, Flag = "Disable Tasability Notifications"})
 		Settings:AddToggle({Name = "Disable Finish Notification", Save = true, Flag = "Disable Finish Notifications"})
 		Settings:AddToggle({Name = "Disable Frozen Mode Lock Camera", Save = true, Flag = "Disable Frozen Mode Lock Camera"})
+		Settings:AddToggle({Name = "God Mode", Save = true, Flag = "God Mode"})
 		if UserInputService.TouchEnabled then
 			Settings:AddButton({Name = "Wipe All Frame (Mobile)", Callback = function()
 			    WipeTasData()
@@ -652,6 +621,53 @@ do
 		Settings:AddButton({Name = "Unload", Callback = function()
 		    OrionLib:Destroy()
 		end})
+	end
+	
+	-- Anticheat bypasses
+	do
+		pcall(function() -- Nymera antikick hook
+			local oldNamecall
+			oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+			    local method = getnamecallmethod()
+			    if not checkcaller() and self == LocalPlayer and method == "Kick" then
+			        return warn("u almost got kicked lol")
+			    end
+			    return oldNamecall(self, ...)
+			end)
+		end)
+		pcall(function() -- Practice anticheat bypass
+			ReplicatedStorage.Remotes.Send:Destroy()
+		end)
+		pcall(function() -- Slad anticheat bypass
+			local sendremote = ReplicatedStorage.DefaultChatSystemChatEvents.ChannelNameColorUpdated
+			local oldspawn
+			oldspawn = hookfunction(getrenv().spawn, function(...)
+				if not checkcaller() and (tostring(getcallingscript()) == "Animate" or tostring(getcallingscript()) == "RbxAnimateScript") then
+					return oldspawn(function()
+						
+					end)
+				end
+				return oldspawn(...)
+			end)
+			sendremote:Destroy()
+		end)
+	end
+	
+	-- Settings Hooks
+	do
+	    pcall(function()
+	        local oldNamecall = nil
+	        oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+	            local method = getnamecallmethod()
+	            local args = {...}
+	            if OrionLib.Flags["God Mode"].Value 
+	                and method == "FireServer"
+	                and self.Name:lower():find("damage") then
+	                return
+	            end
+	            return oldNamecall(self, unpack(args))
+	        end)
+	    end)
 	end
 	
 	do
