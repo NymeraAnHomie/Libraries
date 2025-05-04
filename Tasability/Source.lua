@@ -179,7 +179,6 @@ do
 		                AssemblyAngularVelocity = DeserializeVector3(frameData.AssemblyAngularVelocity),
 						MousePosition = DeserializeVector2(frameData.MousePosition),
 						Shiftlock = frameData.Shiftlock,
-						Zoom = frameData.Zoom,
 						Pose = frameData.Pose,
 						State = frameData.State,
 						Emote = frameData.Emote
@@ -209,7 +208,6 @@ do
 				    AssemblyAngularVelocity = SerializeVector3(frame.AssemblyAngularVelocity),
 					MousePosition = SerializeVector2(frame.MousePosition),
 				    Shiftlock = frame.Shiftlock,
-					Zoom = frame.Zoom,
 					Pose = frame.Pose,
 					State = frame.State,
 					Emote = frame.Emote
@@ -480,38 +478,6 @@ do
 	end
 	
 	-- Camera/Input Functions
-	local ZoomControllers = {}
-	do
-		for _, Table in pairs(getgc(true)) do
-	        if type(Table) == "table" then
-	            pcall(function()
-	                if type(Table.SetCameraToSubjectDistance) == "function" 
-					and type(Table.GetCameraToSubjectDistance) == "function" then
-	                    table.insert(ZoomControllers, Table)
-	                end
-	            end)
-	        end
-	    end
-	end
-	
-	local function GetZoom()
-	    for _, ZoomController in pairs(ZoomControllers) do
-	        local Zoom = ZoomController:GetCameraToSubjectDistance()
-	        if Zoom and Zoom ~= 12.5 then
-	            return Zoom
-	        end
-	    end
-	    return 12.5
-	end
-	
-	local function SetZoom(Zoom)
-	    for _, ZoomController in pairs(ZoomControllers) do
-	        pcall(function()
-	            ZoomController:SetCameraToSubjectDistance(Zoom)
-	        end)
-	    end
-	end
-	
 	function GetShiftlock()
 	    if UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
 	        return true
@@ -563,7 +529,6 @@ do
 		HumanoidRootPart.AssemblyLinearVelocity = Frame.AssemblyLinearVelocity
 		HumanoidRootPart.AssemblyAngularVelocity = Frame.AssemblyAngularVelocity
 		Camera.CFrame = Frame.Camera
-		SetZoom(Frame.Zoom)
 		Humanoid:ChangeState(Enum.HumanoidStateType[Frame.State])
 
 		for i = #Frames, index + 1, -1 do
@@ -655,19 +620,19 @@ do
 	
 	-- Settings Hooks
 	do
-	    pcall(function()
-	        local oldNamecall = nil
-	        oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-	            local method = getnamecallmethod()
-	            local args = {...}
-	            if OrionLib.Flags["God Mode"].Value 
-	                and method == "FireServer"
-	                and self.Name:lower():find("damage") then
-	                return
-	            end
-	            return oldNamecall(self, unpack(args))
-	        end)
-	    end)
+		pcall(function()
+			local oldNamecall
+			oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+				local method = getnamecallmethod()
+				local args = {...}
+				if OrionLib.Flags["God Mode"].Value 
+					and method == "FireServer"
+					and self.Name:lower():find("damage") then
+					return
+				end
+				return oldNamecall(self, unpack(args))
+			end)
+		end)
 	end
 	
 	do
@@ -951,7 +916,6 @@ do
 						HumanoidRootPart.AssemblyAngularVelocity = Frame.AssemblyAngularVelocity
 						Camera.CFrame = Frame.Camera
 						Pose = Frame.Pose
-						SetZoom(Frame.Zoom)
 						SetShiftLock(Frame.Shiftlock)
 						Humanoid:ChangeState(Enum.HumanoidStateType[Frame.State])
 						HumanoidState = tostring(Frame.State)
@@ -984,7 +948,6 @@ do
 					AssemblyAngularVelocity = HumanoidRootPart.AssemblyAngularVelocity,
 					MousePosition = UserInputService:GetMouseLocation(),
 					Shiftlock = GetShiftlock(),
-					Zoom = GetZoom(),
 					Pose = Pose,
 					State = Humanoid:GetState().Name,
 					Emote = LastEmote or nil
