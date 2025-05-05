@@ -75,8 +75,7 @@ local CursorOffset = nil -- UserInputService:GetMouseLocation()
 local LastEmote = nil
 local EmotePlaying = nil
 local LastPlayedEmote = nil
---local PlayerModule = LocalPlayer.PlayerScripts:WaitForChild("PlayerModule")
---local ShiftLockBoundKeys = PlayerModule:WaitForChild("CameraModule"):WaitForChild("MouseLockController"):WaitForChild("BoundKeys")
+local IsMobile = UserInputService.TouchEnabled
 local ShiftLockEnabled = false
 local Pose = ""
 local HumanoidState = ""
@@ -578,7 +577,7 @@ do
 		Settings:AddToggle({Name = "Disable Finish Notification", Save = true, Flag = "Disable Finish Notifications"})
 		Settings:AddToggle({Name = "Disable Frozen Mode Lock Camera", Save = true, Flag = "Disable Frozen Mode Lock Camera"})
 		Settings:AddToggle({Name = "God Mode", Save = true, Flag = "God Mode"})
-		if UserInputService.TouchEnabled then
+		if IsMobile then
 			Settings:AddButton({Name = "Wipe All Frame (Mobile)", Callback = function()
 			    WipeTasData()
 			end})
@@ -625,9 +624,7 @@ do
 			oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
 				local method = getnamecallmethod()
 				local args = {...}
-				if OrionLib.Flags["God Mode"].Value 
-					and method == "FireServer"
-					and self.Name:lower():find("damage") then
+				if OrionLib.Flags["God Mode"].Value and self.Name:lower():find("damage") then
 					return
 				end
 				return oldNamecall(self, unpack(args))
@@ -636,7 +633,7 @@ do
 	end
 	
 	do
-	if UserInputService.TouchEnabled then
+	if IsMobile then
 		local tas = Utility.CreateInstance("ScreenGui", game:GetService("CoreGui"), {
 		    Name = "tas",
 		    IgnoreGuiInset = true
@@ -999,4 +996,5 @@ end
 	[+] Added Animation Functions
 	[+] Added QOL Features (Settings, Keybinds)
 	[+] Added Mobile Support
+	[+] Fein
 ]]
