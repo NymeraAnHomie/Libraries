@@ -1,6 +1,7 @@
 local Controls = {
     Frozen = "E",
     Wipe = "Delete",
+    PauseReading = "K",
     Spectate = "One",
     Create = "Two",
     Test = "Three",
@@ -38,8 +39,6 @@ local Cursors = {
 
 -- End of config
 
-
-
 -- Constants
 local Version = "V1.3"
 local Title = "Tasability " .. tostring(Version)
@@ -60,6 +59,7 @@ local Camera = Workspace.CurrentCamera
 
 -- Variables Table
 local States = {} -- Values for Tasability Writing
+local Tasability = {}
 local Animation = {}
 local Frames = {}
 local Pressed = {}
@@ -84,6 +84,7 @@ States.Writing = false
 States.Reading = false
 States.Frozen = false
 States.Dead = false
+States.IsPaused = false
 States.LoopingForward = false
 States.LoopingBackward = false
 States.Tas = nil
@@ -517,21 +518,21 @@ do
 		end
 	end
 	
-	local function SetFrame(index: number)
+	local function SetFrame(index, preserveFuture)
 		if not Frames[index] then return end
-
+	
 		Index = index
 		local Frame = Frames[index]
-
+	
 		HumanoidRootPart.CFrame = Frame.CFrame
 		HumanoidRootPart.Velocity = Frame.Velocity
 		HumanoidRootPart.AssemblyLinearVelocity = Frame.AssemblyLinearVelocity
 		HumanoidRootPart.AssemblyAngularVelocity = Frame.AssemblyAngularVelocity
 		Camera.CFrame = Frame.Camera
 		Humanoid:ChangeState(Enum.HumanoidStateType[Frame.State])
-
-		for i = #Frames, index + 1, -1 do
-			if States.Writing and not States.LoopingForward then
+	
+		if States.Writing and not States.LoopingForward and not preserveFuture then
+			for i = #Frames, index + 1, -1 do
 				table.remove(Frames, i)
 			end
 		end
@@ -578,9 +579,7 @@ do
 		Settings:AddToggle({Name = "Disable Frozen Mode Lock Camera", Save = true, Flag = "Disable Frozen Mode Lock Camera"})
 		Settings:AddToggle({Name = "God Mode", Save = true, Flag = "God Mode"})
 		if IsMobile then
-			Settings:AddButton({Name = "Wipe All Frame (Mobile)", Callback = function()
-			    WipeTasData()
-			end})
+			Settings:AddButton({Name = "Wipe All Frame (Mobile)", Callback = WipeTasData})
 		end
 		Settings:AddButton({Name = "Unload", Callback = function()
 		    OrionLib:Destroy()
@@ -621,7 +620,7 @@ do
 	do
 		pcall(function()
 			local oldNamecall
-			oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+			oldNamecall = hookmetamethod(game, "__namecall", function(self, ...) -- [Title Card]
 				local method = getnamecallmethod()
 				local args = {...}
 				if OrionLib.Flags["God Mode"].Value and self.Name:lower():find("damage") then
@@ -634,195 +633,124 @@ do
 	
 	do
 	if IsMobile then
-		local tas = Utility.CreateInstance("ScreenGui", game:GetService("CoreGui"), {
-		    Name = "tas",
-		    IgnoreGuiInset = true
-		})
+		function Tasability:CreateWindow()
+		    local Tas = Utility.CreateInstance("ScreenGui", cloneref(game:GetService("CoreGui")), {
+		        ResetOnSpawn = false,
+		        IgnoreGuiInset = true,
+		        DisplayOrder = 9999,
+		        Name = "TasabilityUI"
+		    })
 		
-		local SForward = Utility.CreateInstance("TextButton", tas, {
-		    Name = "SForward",
-		    Text = ">",
-		    TextWrapped = true,
-		    TextStrokeTransparency = 0,
-		    BorderSizePixel = 0,
-		    TextScaled = true,
-		    BackgroundColor3 = Color3.new(0.05, 0.05, 0.05),
-		    FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal),
-		    TextSize = 40,
-		    Size = UDim2.new(0.04, 0, 0.08, 0),
-		    TextColor3 = Color3.new(1, 1, 1),
-		    BorderColor3 = Color3.new(0, 0, 0),
-		    Position = UDim2.new(0.09, 0, 0.46, 0)
-		})
+		    local Frame = Utility.CreateInstance("Frame", Tas, {
+		        Name = "MainFrame",
+		        AutomaticSize = Enum.AutomaticSize.Y,
+		        Size = UDim2.new(0, 130, 0, 85),
+		        Position = UDim2.new(0.73, 0, 0.44, 0),
+		        BorderSizePixel = 0,
+		        BorderColor3 = Color3.new(0, 0, 0),
+		        BackgroundTransparency = 0.99,
+		        BackgroundColor3 = Color3.new(1, 1, 1)
+		    })
 		
-		local SBackward = Utility.CreateInstance("TextButton", tas, {
-		    Name = "SBackward",
-		    Text = "<",
-		    TextWrapped = true,
-		    TextStrokeTransparency = 0,
-		    BorderSizePixel = 0,
-		    TextScaled = true,
-		    BackgroundColor3 = Color3.new(0.05, 0.05, 0.05),
-		    FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal),
-		    TextSize = 40,
-		    Size = UDim2.new(0.04, 0, 0.08, 0),
-		    TextColor3 = Color3.new(1, 1, 1),
-		    BorderColor3 = Color3.new(0, 0, 0),
-		    Position = UDim2.new(0.04, 0, 0.46, 0)
-		})
+		    Utility.CreateInstance("UIGridLayout", Frame, {
+		        SortOrder = Enum.SortOrder.LayoutOrder,
+		        CellSize = UDim2.new(0, 40, 0, 40)
+		    })
 		
-		local Forward = Utility.CreateInstance("TextButton", tas, {
-		    Name = "Forward",
-		    Text = ">>",
-		    TextWrapped = true,
-		    TextStrokeTransparency = 0,
-		    BorderSizePixel = 0,
-		    TextScaled = true,
-		    BackgroundColor3 = Color3.new(0.05, 0.05, 0.05),
-		    FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal),
-		    TextSize = 40,
-		    Size = UDim2.new(0.04, 0, 0.08, 0),
-		    TextColor3 = Color3.new(1, 1, 1),
-		    BorderColor3 = Color3.new(0, 0, 0),
-		    Position = UDim2.new(0.09, 0, 0.55, 0)
-		})
+		    local Window = {
+		        Gui = Tas,
+		        Frame = Frame
+		    }
 		
-		local Backward = Utility.CreateInstance("TextButton", tas, {
-		    Name = "Backward",
-		    Text = "<<",
-		    TextWrapped = true,
-		    TextStrokeTransparency = 0,
-		    BorderSizePixel = 0,
-		    TextScaled = true,
-		    BackgroundColor3 = Color3.new(0.05, 0.05, 0.05),
-		    FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal),
-		    TextSize = 40,
-		    Size = UDim2.new(0.04, 0, 0.08, 0),
-		    TextColor3 = Color3.new(1, 1, 1),
-		    BorderColor3 = Color3.new(0, 0, 0),
-		    Position = UDim2.new(0.04, 0, 0.55, 0)
-		})
+		    function Window:AddButton(Name, Callback, CallbackDown, CallbackUp)
+			    local Button = Utility.CreateInstance("TextButton", self.Frame, {
+			        Text = Name,
+			        Size = UDim2.new(0, 40, 0, 40),
+			        BackgroundColor3 = Color3.new(0.15, 0.15, 0.15),
+			        TextColor3 = Color3.new(1, 1, 1),
+			        TextStrokeTransparency = 0,
+			        Font = Enum.Font.SourceSans,
+			        TextScaled = true,
+			        BackgroundTransparency = 0.2,
+			        BorderSizePixel = 0
+			    })
+			
+			    Utility.CreateInstance("UICorner", Button, {
+			        CornerRadius = UDim.new(0, 6)
+			    })
+			
+			    Utility.CreateInstance("UIStroke", Button, {
+			        Color = Color3.new(0.86, 0.86, 0.86),
+			        ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+			    })
+			
+			    if Callback then
+			        Button.MouseButton1Click:Connect(Callback)
+			    end
+			
+			    if CallbackDown then
+			        Button.MouseButton1Down:Connect(CallbackDown)
+			    end
+			
+			    if CallbackUp then
+			        Button.MouseButton1Up:Connect(CallbackUp)
+			    end
+			
+			    return Button
+			end
 		
-		local Pause = Utility.CreateInstance("TextButton", tas, {
-		    Name = "Pause",
-		    Text = "Pause/Froze",
-		    TextWrapped = true,
-		    TextStrokeTransparency = 0,
-		    BorderSizePixel = 0,
-		    TextScaled = true,
-		    BackgroundColor3 = Color3.new(0.05, 0.05, 0.05),
-		    FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal),
-		    TextSize = 40,
-		    Size = UDim2.new(0.04, 0, 0.08, 0),
-		    TextColor3 = Color3.new(1, 1, 1),
-		    BorderColor3 = Color3.new(0, 0, 0),
-		    Position = UDim2.new(0.14, 0, 0.45, 0)
-		})
+		    return Window
+		end
 		
-		local One = Utility.CreateInstance("TextButton", tas, {
-		    Name = "One",
-		    Text = "1",
-		    TextWrapped = true,
-		    TextStrokeTransparency = 0,
-		    BorderSizePixel = 0,
-		    TextScaled = true,
-		    BackgroundColor3 = Color3.new(0.05, 0.05, 0.05),
-		    FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal),
-		    TextSize = 40,
-		    Size = UDim2.new(0.04, 0, 0.08, 0),
-		    TextColor3 = Color3.new(1, 1, 1),
-		    BorderColor3 = Color3.new(0, 0, 0),
-		    Position = UDim2.new(0.04, 0, 0.36, 0)
-		})
-		
-		local Two = Utility.CreateInstance("TextButton", tas, {
-		    Name = "Two",
-		    Text = "2",
-		    TextWrapped = true,
-		    TextStrokeTransparency = 0,
-		    BorderSizePixel = 0,
-		    TextScaled = true,
-		    BackgroundColor3 = Color3.new(0.05, 0.05, 0.05),
-		    FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal),
-		    TextSize = 40,
-		    Size = UDim2.new(0.04, 0, 0.08, 0),
-		    TextColor3 = Color3.new(1, 1, 1),
-		    BorderColor3 = Color3.new(0, 0, 0),
-		    Position = UDim2.new(0.09, 0, 0.36, 0)
-		})
-		
-		local Three = Utility.CreateInstance("TextButton", tas, {
-		    Name = "Three",
-		    Text = "3",
-		    TextWrapped = true,
-		    TextStrokeTransparency = 0,
-		    BorderSizePixel = 0,
-		    TextScaled = true,
-		    BackgroundColor3 = Color3.new(0.05, 0.05, 0.05),
-		    FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal),
-		    TextSize = 40,
-		    Size = UDim2.new(0.04, 0, 0.08, 0),
-		    TextColor3 = Color3.new(1, 1, 1),
-		    BorderColor3 = Color3.new(0, 0, 0),
-		    Position = UDim2.new(0.14, 0, 0.36, 0)
-		})
-		
-		SForward.MouseButton1Click:Connect(function()
-			States.Writing = true
+		local Menu = Tasability:CreateWindow()
+		Menu:AddButton("Frozen", function()
+		    States.Frozen = not States.Frozen
+		    States.Writing = not States.Frozen
+		end)
+		Menu:AddButton("Pause Reading", function()
+		    States.IsPaused = not States.IsPaused
+		end)
+		Menu:AddButton("Spectate", function()
+		    States.Frozen = false
+		    States.Writing = false
+		    States.Reading = false
+		    States.Navigating = false
+		    Notify("Action", "State set to None.", 3)
+		end)
+		Menu:AddButton("Create", function()
+		    States.Writing = true
+		    States.Frozen = true
+		    Notify("Writing Mode", "Now in writing mode.", 3)
+		end)
+		Menu:AddButton("Test", function()
+		    LoadTas(tostring(States.Tas))
+		end)
+		Menu:AddButton("Step Forward", function()
+		    States.Writing = true
+		    States.Frozen = true
+		    SetFrame(Index + 1, true)
+		end)
+		Menu:AddButton("Step Backward", function()
+		    States.Writing = true
+		    States.Frozen = true
+		    SetFrame(Index - 1, false)
+		end)
+		Menu:AddButton("Forward", nil, function()
+	        States.LoopingForward = true
+	        States.LoopingBackward = false
 	        States.Frozen = true
-	        SetFrame(Index + 1)
-		end)
-		
-		SBackward.MouseButton1Click:Connect(function()
-			States.Writing = true
-	        States.Frozen = true
-			SetFrame(Index - 1)
-		end)
-		
-		Pause.MouseButton1Click:Connect(function()
-	        States.Frozen = not States.Frozen
-	        States.Writing = not States.Frozen
-		end)
-		
-		One.MouseButton1Click:Connect(function()
-	        States.Frozen = false
-	        States.Writing = false
-	        States.Reading = false
-	        States.Navigating = false
-	        Notify("Action", "State set to None.", 3)
-		end)
-		
-		Two.MouseButton1Click:Connect(function()
 	        States.Writing = true
+	    end, function()
+	        States.LoopingForward = false
+	    end)
+		Menu:AddButton("Backward", nil, function()
+	        States.LoopingBackward = true
+	        States.LoopingForward = false
 	        States.Frozen = true
-	        Notify("Writing Mode", "Now in writing mode.", 3)
-		end)
-		
-		Three.MouseButton1Click:Connect(function()
-	        LoadTas(tostring(States.Tas))
-		end)
-		
-		Forward.MouseButton1Down:Connect(function()
-			States.LoopingForward = true
-			States.LoopingBackward = false
-			States.Frozen = true
-			States.Writing = true
-		end)
-		
-		Forward.MouseButton1Up:Connect(function()
-			States.LoopingForward = false
-		end)
-		
-		Backward.MouseButton1Down:Connect(function()
-			States.LoopingBackward = true
-			States.LoopingForward = false
-			States.Frozen = true
-			States.Writing = true
-		end)
-		
-		Backward.MouseButton1Up:Connect(function()
-			States.LoopingBackward = false
-		end)
+	        States.Writing = true
+	    end, function()
+	        States.LoopingBackward = false
+	    end)
 	end
 	end
 	
@@ -855,14 +783,16 @@ do
 	        end
 	        task.wait(0.1)
 	        States.Frozen = true
+		elseif Input.KeyCode == GetKeyCode(Controls.PauseReading) then
+			States.IsPaused = not States.IsPaused
 	    elseif Input.KeyCode == GetKeyCode(Controls.Forward) then
 	        States.Writing = true
 	        States.Frozen = true
-	        SetFrame(Index + 1)
+	        SetFrame(Index + 1, true)
 	    elseif Input.KeyCode == GetKeyCode(Controls.Backward) then
 	        States.Writing = true
 	        States.Frozen = true
-	        SetFrame(Index - 1)
+	        SetFrame(Index - 1, false)
 	    elseif Input.KeyCode == GetKeyCode(Controls.LoopForward) then
 	        States.LoopingForward = true
 			States.LoopingBackward = false
@@ -892,9 +822,9 @@ do
 		while true do
 			if States.Writing and States.Frozen then
 				if States.LoopingForward and Index < #Frames then
-					SetFrame(Index + 1)
+					SetFrame(Index + 1, true)
 				elseif States.LoopingBackward and Index > 1 then
-					SetFrame(Index - 1)
+					SetFrame(Index - 1, false)
 				end
 			end
 			RunService.RenderStepped:Wait()
@@ -935,7 +865,7 @@ do
 
 	task.spawn(function() -- Writing
 	    while true do
-	        if States.Writing and not States.Reading and not States.Frozen then
+	        if States.Writing and not States.Reading and not States.Frozen and not States.IsPaused then
 	            table.insert(Frames, {
 					Frame = Index,
 					CFrame = HumanoidRootPart.CFrame,
@@ -986,6 +916,7 @@ do
 	    Humanoid = char:WaitForChild("Humanoid")
 	end)
 end
+-- That was painful I'll be damn ain't it?
 
 --[[
 	Source or Owner by nymera_src
