@@ -37,11 +37,14 @@ local Cursors = {
 
 
 
+
+
+
 -- End of config
 
 -- Constants
 local Version = "V1.3"
-local Title = "Tasability " .. tostring(Version)
+local Title = "Tasability - Orion Edition - " .. tostring(Version)
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -478,6 +481,10 @@ do
 	end
 	
 	-- Camera/Input Functions
+	function SendKey(KeyCode, Release)
+	    VirtualInputManager:SendKeyEvent(not Release, KeyCode, false, game)
+	end
+
 	function GetShiftlock()
 	    if UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
 	        return true
@@ -491,6 +498,7 @@ do
 			ShiftLockEnabled = Bool
 			if Bool then
 				SetCursor("MouseLockedCursor")
+				SendKey(Enum.KeyCode.LeftShift, false)
 			else
 				SetCursor("ArrowFarCursor")
 			end
@@ -637,12 +645,10 @@ do
 		    local Tas = Utility.CreateInstance("ScreenGui", cloneref(game:GetService("CoreGui")), {
 		        ResetOnSpawn = false,
 		        IgnoreGuiInset = true,
-		        DisplayOrder = 9999,
-		        Name = "TasabilityUI"
+		        DisplayOrder = 9999
 		    })
 		
 		    local Frame = Utility.CreateInstance("Frame", Tas, {
-		        Name = "MainFrame",
 		        AutomaticSize = Enum.AutomaticSize.Y,
 		        Size = UDim2.new(0, 130, 0, 85),
 		        Position = UDim2.new(0.73, 0, 0.44, 0),
@@ -920,7 +926,7 @@ end
 
 --[[
 	Source or Owner by nymera_src
-	Some Script are taken by original Replayability so credit to the owner who i taken
+	Some part are taken by replay ability cuz yk im not that talented
 	
 	Tasability V1.3
 	[+] Bypassed Some Anticheats
