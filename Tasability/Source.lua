@@ -60,9 +60,10 @@ local HumanoidRootPart = Character.HumanoidRootPart
 local Humanoid = Character.Humanoid
 local Camera = Workspace.CurrentCamera
 
--- Variables Table
+-- Local Tables
 local States = {} -- Values for Tasability Writing
 local Tasability = {}
+local ZoomControllers = {}
 local Animation = {}
 local Frames = {}
 local Pressed = {}
@@ -129,6 +130,43 @@ end
 
 -- Functions
 do
+    -- GetGC Functions
+    do
+        do -- Get ZoomControllers from getgc
+            for _,Table in pairs(getgc(true)) do
+                if type(Table) == "table" then
+                    pcall(function()
+                        if type(rawget(Table,"SetCameraToSubjectDistance")) == "function"
+                        and type(rawget(Table,"GetCameraToSubjectDistance")) == "function"
+                        and rawget(Table,"FIRST_PERSON_DISTANCE_THRESHOLD")
+                        and rawget(Table,"lastCameraTransform") then
+                            table.insert(ZoomControllers,Table)
+                        end
+                    end)
+                end
+            end
+            print(tostring(#ZoomControllers).." ZoomController"..(#ZoomControllers == 1 and "" or "s"))
+        end
+
+        function GetZoom()
+            for _,ZoomController in pairs(ZoomControllers) do
+                local Zoom = ZoomController:GetCameraToSubjectDistance()
+                if Zoom and Zoom ~= 12.5 then
+                    return Zoom
+                end
+            end
+            return 12.5
+        end
+
+        function SetZoom(Zoom)
+            for _,ZoomController in pairs(ZoomControllers) do
+                pcall(function()
+                    ZoomController:SetCameraToSubjectDistance(Zoom)
+                end)
+            end
+        end
+    end
+
 	-- Tasability Functions
 	do
 		local function SerializeCFrame(cf)
@@ -181,6 +219,7 @@ do
 		                AssemblyLinearVelocity = DeserializeVector3(frameData.AssemblyLinearVelocity),
 		                AssemblyAngularVelocity = DeserializeVector3(frameData.AssemblyAngularVelocity),
 						MousePosition = DeserializeVector2(frameData.MousePosition),
+                        Zoom = frameData.Zoom,
 						Shiftlock = frameData.Shiftlock,
 						Pose = frameData.Pose,
 						State = frameData.State,
@@ -850,6 +889,7 @@ do
 						Camera.CFrame = Frame.Camera
 						Pose = Frame.Pose
 						SetShiftLock(Frame.Shiftlock)
+                        SetZoom(Frame.Zoom)
 						Humanoid:ChangeState(Enum.HumanoidStateType[Frame.State])
 						HumanoidState = tostring(Frame.State)
 					
@@ -880,6 +920,7 @@ do
 					AssemblyLinearVelocity = HumanoidRootPart.AssemblyLinearVelocity,
 					AssemblyAngularVelocity = HumanoidRootPart.AssemblyAngularVelocity,
 					MousePosition = UserInputService:GetMouseLocation(),
+                    Zoom = GetZoom(),
 					Shiftlock = GetShiftlock(),
 					Pose = Pose,
 					State = Humanoid:GetState().Name,
@@ -904,6 +945,7 @@ do
 							HumanoidRootPart.AssemblyLinearVelocity = Frame.AssemblyLinearVelocity
 							HumanoidRootPart.AssemblyAngularVelocity = Frame.AssemblyAngularVelocity
 							Humanoid:ChangeState(Enum.HumanoidStateType[Frame.State])
+                            SetZoom(Frame.Zoom)
 							if not OrionLib.Flags["Disable Frozen Mode Lock Camera"].Value then
 								Camera.CFrame = Frame.Camera
 							end
