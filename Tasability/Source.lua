@@ -976,12 +976,6 @@ do
 			RunService.RenderStepped:Wait()
 		end
 	end)
-	
-	LocalPlayer.AncestryChanged:Connect(function()
-	    if not LocalPlayer:IsDescendantOf(game) then
-	        SaveTas(States.Tas)
-	    end
-	end)
 
 	LocalPlayer.CharacterAdded:Connect(function(char)
 	    Character = char
