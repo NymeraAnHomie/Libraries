@@ -76,6 +76,7 @@ local Cursor = Instance.new("ImageLabel", CursorHolder)
 local CursorIcon = nil
 local CursorSize = nil
 local CursorOffset = nil -- UserInputService:GetMouseLocation()
+local Resolution = nil
 local LastEmote = nil
 local EmotePlaying = nil
 local LastPlayedEmote = nil
@@ -237,27 +238,47 @@ do
 		
 		function SaveTas(fileName)
 		    local path = "Tasability/PC/Files/" .. fileName .. ".json"
-		    if isfile(path) then delfile(path) end
+		    local FileIndex = 1
+		    local backupPath
 		
-			task.wait(0.08)
+		    if isfile(path) then
+		        repeat
+		            backupPath = path .. FileIndex .. ".bak"
+		            FileIndex += 1
+		        until not isfile(backupPath)
+		
+		        FileIndex -= 1
+		        backupPath = path .. FileIndex .. ".bak"
+		
+		        writefile(backupPath, readfile(path))
+		        delfile(path)
+		    end
+		
+		    task.wait(0.05)
+		
 		    local serializedFrames = {}
 		    for _, frame in ipairs(Frames) do
 		        table.insert(serializedFrames, {
-				    CFrame = SerializeCFrame(frame.CFrame),
-				    Camera = SerializeCFrame(frame.Camera),
-				    Velocity = SerializeVector3(frame.Velocity),
-				    AssemblyLinearVelocity = SerializeVector3(frame.AssemblyLinearVelocity),
-				    AssemblyAngularVelocity = SerializeVector3(frame.AssemblyAngularVelocity),
-					MousePosition = SerializeVector2(frame.MousePosition),
-				    Shiftlock = frame.Shiftlock,
-					Pose = frame.Pose,
-					State = frame.State,
-					Emote = frame.Emote
-				})
+		            CFrame = SerializeCFrame(frame.CFrame),
+		            Camera = SerializeCFrame(frame.Camera),
+		            Velocity = SerializeVector3(frame.Velocity),
+		            AssemblyLinearVelocity = SerializeVector3(frame.AssemblyLinearVelocity),
+		            AssemblyAngularVelocity = SerializeVector3(frame.AssemblyAngularVelocity),
+		            MousePosition = SerializeVector2(frame.MousePosition),
+		            Shiftlock = frame.Shiftlock,
+		            Pose = frame.Pose,
+		            State = frame.State,
+		            Emote = frame.Emote
+		        })
 		    end
 		
 		    writefile(path, HttpService:JSONEncode(serializedFrames))
-		    Notify("Action: " .. fileName, "TAS saved/overwrite.", 3)
+		
+		    if FileIndex > 0 then
+		        Notify("Action: " .. fileName, "TAS saved with backup v" .. FileIndex, 3)
+		    else
+		        Notify("Action: " .. fileName, "TAS saved (new file)", 3)
+		    end
 		end
 		
 		function CreateTas(Name, Content)
@@ -474,6 +495,7 @@ do
 					return 
 				end
 				
+				PlayAnimation("Sit", 0.1, Humanoid)
 				Pose = "Seated"
 			end)
 
@@ -547,10 +569,10 @@ do
 		if ShiftLockEnabled ~= Bool then
 			ShiftLockEnabled = Bool
 			if Bool then
-				SetCursor("MouseLockedCursor")
+				SetCursor("MouseLockedCursor", true)
 				SendKey(Enum.KeyCode.LeftShift, false)
 			else
-				SetCursor("ArrowFarCursor")
+				SetCursor("ArrowFarCursor", false)
 			end
 			ContextActionService:CallFunction("MouseLockSwitchAction", Enum.UserInputState.Begin, game)
 		end
@@ -561,13 +583,15 @@ do
 		CursorIcon = CursorData.Icon
 		CursorSize = CursorData.Size
 		CursorOffset = CursorData.Offset
-
+		
+		CursorHolder.IgnoreGuiInset = true
 		Cursor.Image = CursorIcon
 		Cursor.Size = CursorSize
 		Cursor.BackgroundTransparency = 1
 		Cursor.BorderSizePixel = 0
-		Cursor.ZIndex = math.huge
+		Cursor.ZIndex = 99999
 		Cursor.Visible = true
+		Resolution = CursorHolder.AbsoluteSize
 
 		if StayinMiddle then
 			Cursor.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -598,8 +622,11 @@ do
 	
 	-- Interface
 	do
+		local README = Window:MakeTab({Name = "README", Icon = "rbxassetid://10734907168"})
+		README:AddParagraph("FPS Importance", "Use a specific FPS cap and do not change it until you're done making a TAS or are currently not working on a TAS. Changing it will lead to incorrect replay speeds (too fast or too slow).")
+		README:AddParagraph("Backup System", "Every time a TAS file is saved, a backup is automatically created if the file already exists. These backups are numbered (e.g., .bak1, .bak2, etc.) to ensure previous versions are preserved. This prevents accidental loss of data and lets you recover earlier versions of your TAS.")
+		
 		local Main = Window:MakeTab({Name = "Main", Icon = "rbxassetid://10723374641"})
-		Main:AddParagraph("Importance", "Use a specific FPS cap and do not change it until you're done making a TAS or are currently not working on a TAS. Changing it will lead to incorrect replay speeds (too fast or too slow).")
 		local FileDropdown = Main:AddDropdown({Name = "Files",  Options = GetFiles(),  Callback = function(Value)
 		    States.Tas = Value
 		end})
@@ -814,6 +841,12 @@ do
 	end
 	end
 	
+	-- Setup
+	do
+		SetCursor("ArrowFarCursor", false)
+		UserInputService.MouseIconEnabled = false
+	end
+	
 	-- Connections
 	UserInputService.InputBegan:Connect(function(Input, GameProcessed)
 	    if GameProcessed or UserInputService:GetFocusedTextBox() then
@@ -890,6 +923,42 @@ do
 			RunService.RenderStepped:Wait()
 		end
 	end)
+
+	task.spawn(function() -- Update cursor
+		while true do
+			Cursor.Image = CursorIcon
+			Cursor.Size = CursorSize
+	
+			local CursorOffset = CursorOffset or Vector2.zero
+			local GuiInset = GuiService:GetGuiInset()
+			local Resolution = Resolution or Vector2.new(1920, 1080)
+	
+			local PosX, PosY
+	
+			if States.Reading and Index <= #Frames then
+				local Frame = Frames[Index]
+				if Frame and Frame.MousePosition then
+					PosX = Frame.MousePosition.X + CursorOffset.X - GuiInset.X
+					PosY = Frame.MousePosition.Y + CursorOffset.Y - GuiInset.Y
+				end
+			else
+				local MouseLocation = UserInputService:GetMouseLocation()
+				if UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
+					PosX = (Resolution.X / 2) + CursorOffset.X - GuiInset.X
+					PosY = (Resolution.Y / 2) + CursorOffset.Y - GuiInset.Y
+				else
+					PosX = MouseLocation.X + CursorOffset.X - GuiInset.X
+					PosY = MouseLocation.Y + CursorOffset.Y - GuiInset.Y
+				end
+			end
+	
+			if PosX and PosY then
+				Cursor.Position = UDim2.fromOffset(PosX, PosY)
+			end
+	
+			RunService.RenderStepped:Wait()
+		end
+	end)
 	
 	task.spawn(function() -- Reading
 	    while true do
@@ -912,12 +981,12 @@ do
 							PlayAnimation(Frame.Emote, 0.1, Humanoid)
 							LastPlayedEmote = Frame.Emote
 						end
+						if Frame.Pose ~= Pose then
+						    PlayAnimation(Frame.Pose, 0.1, Humanoid)
+						    Pose = Frame.Pose
+						end
 					end
 					Index = Index + 1
-					if Frame.Pose ~= Pose then
-					    PlayAnimation(Frame.Pose, 0.1, Humanoid)
-					    Pose = Frame.Pose
-					end
 					if Index > #Frames then
 						States.Reading = false
 						LastPlayedEmote = nil
