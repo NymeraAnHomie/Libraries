@@ -257,7 +257,18 @@ do
 		    end
 		
 		    writefile(path, HttpService:JSONEncode(serializedFrames))
-		    Notify("Action", "TAS saved/overwrite.", 3)
+		    Notify("Action: " .. fileName, "TAS saved/overwrite.", 3)
+		end
+		
+		function CreateTas(Name, Content)
+		    local path = "Tasability/PC/Files/" .. Name .. ".json"
+		
+		    if not isfile(path) then
+		        writefile(path, Content)
+		        Notify("TAS Created", "Saved as: " .. Name .. ".json", 5)
+		    else
+		        Notify("TAS Already Exists", Name .. ".json was not overwritten", 5)
+		    end
 		end
 	end
 	
@@ -595,11 +606,15 @@ do
 		Main:AddTextbox({Name = "Name", TextDisappear = false, Callback = function(Value)
 		    States.Name = Value
 		end})
-		Main:AddButton({Name = "Save", Callback = function()
-		    SaveTas(States.Name)
+		Main:AddButton({Name = "Create", Callback = function()
+		    CreateTas(States.Name, "[]")
 		    FileDropdown:Refresh(GetFiles(), true)
 		end})
-		Main:AddButton({Name = "Refresh", Callback = function()
+		Main:AddButton({Name = "Save Selected File", Callback = function()
+		    SaveTas(States.Tas)
+		    FileDropdown:Refresh(GetFiles(), true)
+		end})
+		Main:AddButton({Name = "Refresh Lists", Callback = function()
 		    FileDropdown:Refresh(GetFiles(), true)
 		end})
 		Main:AddButton({Name = "Start Writing at the end of selected tas", Callback = function()
@@ -899,6 +914,10 @@ do
 						end
 					end
 					Index = Index + 1
+					if Frame.Pose ~= Pose then
+					    PlayAnimation(Frame.Pose, 0.1, Humanoid)
+					    Pose = Frame.Pose
+					end
 					if Index > #Frames then
 						States.Reading = false
 						LastPlayedEmote = nil
@@ -929,7 +948,7 @@ do
 				LastEmote = nil
 	            Index = Index + 1
 	        end
-	        RunService.RenderStepped:Wait()
+	        RunService.PreSimulation:Wait()
 	    end
 	end)
 
@@ -956,6 +975,12 @@ do
 			HumanoidRootPart.Anchored = States.Frozen
 			RunService.RenderStepped:Wait()
 		end
+	end)
+	
+	LocalPlayer.AncestryChanged:Connect(function()
+	    if not LocalPlayer:IsDescendantOf(game) then
+	        SaveTas(States.Tas)
+	    end
 	end)
 
 	LocalPlayer.CharacterAdded:Connect(function(char)
