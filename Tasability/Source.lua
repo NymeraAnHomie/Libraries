@@ -965,7 +965,7 @@ do
 	task.spawn(function() -- Reading
 	    while true do
 			pcall(function() -- Sometime old tas file doe not met the option to read causing the script to break
-		        if States.Reading and Index <= #Frames and States.IsPaused then
+		        if States.Reading and Index <= #Frames and not States.IsPaused then
 		            local Frame = Frames[Index]
 		            if Frame then
 						HumanoidRootPart.CFrame = Frame.CFrame
