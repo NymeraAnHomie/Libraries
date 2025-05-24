@@ -77,9 +77,11 @@ local CursorIcon = nil
 local CursorSize = nil
 local CursorOffset = nil -- UserInputService:GetMouseLocation()
 local Resolution = nil
-local LastEmote = nil
 local EmotePlaying = nil
+local LastEmote = nil
+local LastFrameEmote = nil
 local LastPlayedEmote = nil
+local LastFramePose = nil
 local IsMobile = UserInputService.TouchEnabled
 local ShiftLockEnabled = false
 local Pose = ""
@@ -565,19 +567,6 @@ do
 	    end
 	end
 	
-	function SetShiftLock(Bool)
-		if ShiftLockEnabled ~= Bool then
-			ShiftLockEnabled = Bool
-			if Bool then
-				SetCursor("MouseLockedCursor", true)
-				SendKey(Enum.KeyCode.LeftShift, false)
-			else
-				SetCursor("ArrowFarCursor", false)
-			end
-			ContextActionService:CallFunction("MouseLockSwitchAction", Enum.UserInputState.Begin, game)
-		end
-	end
-	
 	local function SetCursor(CursorName, StayinMiddle)
 		local CursorData = Cursors[CursorName]
 		CursorIcon = CursorData.Icon
@@ -597,6 +586,19 @@ do
 			Cursor.AnchorPoint = Vector2.new(0.5, 0.5)
 		else
 			Cursor.AnchorPoint = Vector2.new(0, 0)
+		end
+	end
+	
+	function SetShiftLock(Bool)
+		if ShiftLockEnabled ~= Bool then
+			ShiftLockEnabled = Bool
+			if Bool then
+				SetCursor("MouseLockedCursor", true)
+				SendKey(Enum.KeyCode.LeftShift, false)
+			else
+				SetCursor("ArrowFarCursor", false)
+			end
+			ContextActionService:CallFunction("MouseLockSwitchAction", Enum.UserInputState.Begin, game)
 		end
 	end
 	
@@ -963,7 +965,7 @@ do
 	task.spawn(function() -- Reading
 	    while true do
 			pcall(function() -- Sometime old tas file doe not met the option to read causing the script to break
-		        if States.Reading and Index <= #Frames then
+		        if States.Reading and Index <= #Frames and States.IsPaused then
 		            local Frame = Frames[Index]
 		            if Frame then
 						HumanoidRootPart.CFrame = Frame.CFrame
@@ -999,7 +1001,7 @@ do
 
 	task.spawn(function() -- Writing
 	    while true do
-	        if States.Writing and not States.Reading and not States.Frozen and not States.IsPaused then
+	        if States.Writing and not States.Reading and not States.Frozen then
 	            table.insert(Frames, {
 					Frame = Index,
 					CFrame = HumanoidRootPart.CFrame,
