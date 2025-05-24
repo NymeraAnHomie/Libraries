@@ -865,10 +865,12 @@ do
 	        States.Writing = false
 	        States.Reading = false
 	        States.Navigating = false
+			States.IsPaused = false
 	        Notify("Action", "State set to None.", 3)
 	    elseif Input.KeyCode == GetKeyCode(Controls.Create) then
 	        States.Writing = true
 	        States.Frozen = true
+			States.IsPaused = false
 	        Notify("Writing Mode", "Now in writing mode.", 3)
 	    elseif Input.KeyCode == GetKeyCode(Controls.Test) then
 	        LoadTas(tostring(States.Tas))
@@ -883,19 +885,23 @@ do
 	    elseif Input.KeyCode == GetKeyCode(Controls.Forward) then
 	        States.Writing = true
 	        States.Frozen = true
+			States.IsPaused = false
 	        SetFrame(Index + 1, true)
 	    elseif Input.KeyCode == GetKeyCode(Controls.Backward) then
 	        States.Writing = true
 	        States.Frozen = true
+			States.IsPaused = false
 	        SetFrame(Index - 1, false)
 	    elseif Input.KeyCode == GetKeyCode(Controls.LoopForward) then
 	        States.LoopingForward = true
 			States.LoopingBackward = false
+			States.IsPaused = false
 	        States.Frozen = true
 	        States.Writing = true
 	    elseif Input.KeyCode == GetKeyCode(Controls.LoopBackward) then
 	        States.LoopingBackward = true
 			States.LoopingForward = false
+			States.IsPaused = false
 	        States.Frozen = true
 	        States.Writing = true
 	    end
