@@ -233,6 +233,7 @@ do
 		        States.Reading = true
 		        States.Writing = false
 		        States.Frozen = false
+				States.IsPaused = false
 		    else
 		        Notify("Error", "TAS file not found", 3)
 		    end
@@ -864,7 +865,6 @@ do
 	        States.Frozen = false
 	        States.Writing = false
 	        States.Reading = false
-	        States.Navigating = false
 			States.IsPaused = false
 	        Notify("Action", "State set to None.", 3)
 	    elseif Input.KeyCode == GetKeyCode(Controls.Create) then
