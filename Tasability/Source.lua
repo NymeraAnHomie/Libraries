@@ -76,6 +76,7 @@ local Cursor = Instance.new("ImageLabel", CursorHolder)
 local CursorIcon = nil
 local CursorSize = nil
 local CursorOffset = nil -- UserInputService:GetMouseLocation()
+local PlaybackStart = 0
 local Resolution = nil
 local EmotePlaying = nil
 local LastEmote = nil
@@ -94,6 +95,7 @@ States.Dead = false
 States.IsPaused = false
 States.LoopingForward = false
 States.LoopingBackward = false
+States.Finished = false
 States.Tas = nil
 States.Name = ""
 Animation.Disabled = false
@@ -231,6 +233,8 @@ do
 		        end
 		        
 		        States.Reading = true
+				States.Finished = false
+				PlaybackStart = tick()
 		        States.Writing = false
 		        States.Frozen = false
 				States.IsPaused = false
@@ -995,9 +999,15 @@ do
 						end
 					end
 					Index = Index + 1
-					if Index > #Frames then
-						States.Reading = false
-						LastPlayedEmote = nil
+					if Index > #Frames and not States.Finished then
+					    States.Finished = true
+					    States.Reading = false
+					    LastPlayedEmote = nil
+					
+					    if not OrionLib.Flags["Disable Finish Notifications"].Value then
+					        local elapsed = tick() - PlaybackStart
+					        Notify("TAS Complete", string.format("Playback duration: %.2f seconds", elapsed), 5)
+					    end
 					end
 		        end
 			end)
