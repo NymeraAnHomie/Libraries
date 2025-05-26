@@ -622,13 +622,16 @@ do
 	function SetShiftLock(Bool)
 		if ShiftLockEnabled ~= Bool then
 			ShiftLockEnabled = Bool
+
+			if Bool ~= (UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter) then
+				ContextActionService:CallFunction("MouseLockSwitchAction", Enum.UserInputState.Begin, game)
+			end
+
 			if Bool then
 				SetCursor("MouseLockedCursor", true)
-				SendKey(Enum.KeyCode.LeftShift, false)
 			else
 				SetCursor("ArrowFarCursor", false)
 			end
-			ContextActionService:CallFunction("MouseLockSwitchAction", Enum.UserInputState.Begin, game)
 		end
 	end
 	
