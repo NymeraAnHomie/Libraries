@@ -959,12 +959,13 @@ do
 					PosY = Frame.MousePosition.Y + CursorOffset.Y - GuiInset.Y
 				end
 			else
+				local MousePos = UserInputService:GetMouseLocation()
 				if UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
 					PosX = (Resolution.X / 2) + CursorOffset.X - GuiInset.X
 					PosY = (Resolution.Y / 2) + CursorOffset.Y - GuiInset.Y
 				else
-					PosX = MouseLocation.X + CursorOffset.X - GuiInset.X
-					PosY = MouseLocation.Y + CursorOffset.Y - GuiInset.Y
+					PosX = MousePos.X + CursorOffset.X - GuiInset.X
+					PosY = MousePos.Y + CursorOffset.Y - GuiInset.Y
 				end
 			end
 	
@@ -1031,7 +1032,7 @@ do
 					Velocity = HumanoidRootPart.Velocity,
 					AssemblyLinearVelocity = HumanoidRootPart.AssemblyLinearVelocity,
 					AssemblyAngularVelocity = HumanoidRootPart.AssemblyAngularVelocity,
-					MousePosition = MouseLocation,
+					MousePosition = UserInputService:GetMouseLocation(),
                     Zoom = GetZoom(),
 					Shiftlock = GetShiftlock(),
 					Pose = Pose,
