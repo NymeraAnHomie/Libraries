@@ -84,6 +84,7 @@ local LastFrameEmote = nil
 local LastPlayedEmote = nil
 local LastFramePose = nil
 local IsMobile = UserInputService.TouchEnabled
+local MouseLocation = UserInputService:GetMouseLocation()
 local ShiftLockEnabled = false
 local Pose = ""
 local HumanoidState = ""
@@ -560,11 +561,15 @@ do
 	end
 	
 	-- Camera/Input Functions
-	function SendKey(KeyCode, Release)
+	local function SendKey(KeyCode, Release)
 	    VirtualInputManager:SendKeyEvent(not Release, KeyCode, false, game)
 	end
+	
+	local function isThirdPerson(Threshold)
+	    return (Character:WaitForChild("Head").Position - Camera.CFrame.Position).Magnitude > Threshold
+	end
 
-	function GetShiftlock()
+	local function GetShiftlock()
 	    if UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
 	        return true
 	    else
@@ -594,19 +599,6 @@ do
 		end
 	end
 	
-	function SetShiftLock(Bool)
-		if ShiftLockEnabled ~= Bool then
-			ShiftLockEnabled = Bool
-			if Bool then
-				SetCursor("MouseLockedCursor", true)
-				SendKey(Enum.KeyCode.LeftShift, false)
-			else
-				SetCursor("ArrowFarCursor", false)
-			end
-			ContextActionService:CallFunction("MouseLockSwitchAction", Enum.UserInputState.Begin, game)
-		end
-	end
-	
 	local function SetFrame(index, preserveFuture)
 		if not Frames[index] then return end
 	
@@ -624,6 +616,19 @@ do
 			for i = #Frames, index + 1, -1 do
 				table.remove(Frames, i)
 			end
+		end
+	end
+	
+	function SetShiftLock(Bool)
+		if ShiftLockEnabled ~= Bool then
+			ShiftLockEnabled = Bool
+			if Bool then
+				SetCursor("MouseLockedCursor", true)
+				SendKey(Enum.KeyCode.LeftShift, false)
+			else
+				SetCursor("ArrowFarCursor", false)
+			end
+			ContextActionService:CallFunction("MouseLockSwitchAction", Enum.UserInputState.Begin, game)
 		end
 	end
 	
@@ -954,7 +959,6 @@ do
 					PosY = Frame.MousePosition.Y + CursorOffset.Y - GuiInset.Y
 				end
 			else
-				local MouseLocation = UserInputService:GetMouseLocation()
 				if UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
 					PosX = (Resolution.X / 2) + CursorOffset.X - GuiInset.X
 					PosY = (Resolution.Y / 2) + CursorOffset.Y - GuiInset.Y
@@ -1005,8 +1009,10 @@ do
 					    LastPlayedEmote = nil
 					
 					    if not OrionLib.Flags["Disable Finish Notifications"].Value then
-					        local elapsed = tick() - PlaybackStart
-					        Notify("TAS Complete", string.format("Playback duration: %.2f seconds", elapsed), 5)
+					        local Elapsed = tick() - PlaybackStart
+							local EstimatedTime = string.format("Playback duration: %.2f seconds", Elapsed)
+					        Notify("TAS Complete", EstimatedTime, 5)
+							print("TAS Complete: ", EstimatedTime) -- For People Who can't read fast lol
 					    end
 					end
 		        end
@@ -1025,7 +1031,7 @@ do
 					Velocity = HumanoidRootPart.Velocity,
 					AssemblyLinearVelocity = HumanoidRootPart.AssemblyLinearVelocity,
 					AssemblyAngularVelocity = HumanoidRootPart.AssemblyAngularVelocity,
-					MousePosition = UserInputService:GetMouseLocation(),
+					MousePosition = MouseLocation,
                     Zoom = GetZoom(),
 					Shiftlock = GetShiftlock(),
 					Pose = Pose,
@@ -1070,6 +1076,7 @@ do
 	    Humanoid = char:WaitForChild("Humanoid")
 	end)
 end
+
 -- That was painful I'll be damn ain't it?
 
 --[[
