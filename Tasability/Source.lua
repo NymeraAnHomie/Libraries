@@ -6,10 +6,10 @@ local Controls = {
     Create = "Two",
     Test = "Three",
 	AdvanceFrame = "G",
-    Backward = "C",
-    Forward = "V",
-    LoopBackward = "B",
-    LoopForward = "N"
+    Backward = "N",
+    Forward = "B",
+    LoopBackward = "C",
+    LoopForward = "V"
 }
 
 local Cursors = {
