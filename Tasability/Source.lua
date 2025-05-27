@@ -1017,6 +1017,7 @@ do
 			if not States.Reading or not States.Frozen then
 				RestoreZoom()
 			end
+			RunService.RenderStepped:Wait()
 		end
 	end)
 	
