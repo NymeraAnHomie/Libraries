@@ -910,11 +910,13 @@ do
 		    States.Writing = true
 		    States.Frozen = true
 		    SetFrame(Index + 1, true)
+			RestoreZoom()
 		end)
 		Menu:AddButton("Step Backward", function()
 		    States.Writing = true
 		    States.Frozen = true
 		    SetFrame(Index - 1, false)
+			RestoreZoom()
 		end)
 		Menu:AddButton("Forward", nil, function()
 	        States.LoopingForward = true
@@ -923,6 +925,7 @@ do
 	        States.Writing = true
 	    end, function()
 	        States.LoopingForward = false
+			RestoreZoom()
 	    end)
 		Menu:AddButton("Backward", nil, function()
 	        States.LoopingBackward = true
@@ -931,6 +934,7 @@ do
 	        States.Writing = true
 	    end, function()
 	        States.LoopingBackward = false
+			RestoreZoom()
 	    end)
 	end
 	end
@@ -978,11 +982,13 @@ do
 	        States.Frozen = true
 			States.IsPaused = false
 	        SetFrame(Index + 1, true)
+			RestoreZoom()
 	    elseif Input.KeyCode == GetKeyCode(Controls.Backward) then
 	        States.Writing = true
 	        States.Frozen = true
 			States.IsPaused = false
 	        SetFrame(Index - 1, false)
+			RestoreZoom()
 	    elseif Input.KeyCode == GetKeyCode(Controls.LoopForward) then
 	        States.LoopingForward = true
 			States.LoopingBackward = false
