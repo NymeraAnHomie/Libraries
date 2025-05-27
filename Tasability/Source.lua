@@ -139,77 +139,85 @@ end
 -- Functions
 do
     -- GetGC Functions
-    local ZoomControllers = {}
+	local ZoomControllers = {}
 	local ZoomModule = nil
 	local ZoomAPI = nil
+	local ZoomSpring = nil
 	local LastZoom = nil
-	local OriginalMinZoom, OriginalMaxZoom = nil, nil
     do
-		-- Get ZoomControllers from getgc
-		for _, Table in pairs(getgc(true)) do
-			if type(Table) == "table" then
+		for _, Obj in ipairs(getgc(true)) do
+			if type(Obj) == "table" then
+				if type(rawget(Obj, "SetCameraToSubjectDistance")) == "function"
+					and type(rawget(Obj, "GetCameraToSubjectDistance")) == "function"
+					and rawget(Obj, "FIRST_PERSON_DISTANCE_THRESHOLD")
+					and rawget(Obj, "lastCameraTransform") then
+					table.insert(ZoomControllers, Obj)
+				end
+
+				if not ZoomAPI
+					and rawget(Obj, "SetZoomParameters")
+					and rawget(Obj, "GetZoomRadius") then
+					ZoomAPI = Obj
+				end
+
+				if not ZoomSpring
+					and rawget(Obj, "goal")
+					and rawget(Obj, "x")
+					and rawget(Obj, "v") then
+					ZoomSpring = Obj
+				end
+			end
+		end
+
+		print(("# ZoomControllers found: %d"):format(#ZoomControllers))
+
+		function GetZoom()
+			if ZoomAPI and typeof(ZoomAPI.GetZoomRadius) == "function" then
+				local Success, Value = pcall(ZoomAPI.GetZoomRadius, ZoomAPI)
+				if Success and typeof(Value) == "number" then
+					return Value
+				end
+			end
+
+			for _, Controller in ipairs(ZoomControllers) do
+				local Success, Value = pcall(Controller.GetCameraToSubjectDistance, Controller)
+				if Success and typeof(Value) == "number" then
+					return Value
+				end
+			end
+
+			local Head = Character and Character:FindFirstChild("Head")
+			if Head then
+				return (Camera.CFrame.Position - Head.Position).Magnitude
+			end
+
+			return nil
+		end
+
+		local function IsFiniteNumber(Value)
+			return typeof(Value) == "number" and Value == Value and Value < math.huge
+		end
+
+		function SetZoom(ZoomValue)
+			if not IsFiniteNumber(ZoomValue) then return end
+			if LastZoom and ZoomValue == LastZoom then return end
+			LastZoom = ZoomValue
+
+			if ZoomAPI and typeof(ZoomAPI.SetZoomParameters) == "function" then
+				pcall(ZoomAPI.SetZoomParameters, ZoomAPI, ZoomValue, 0)
+			elseif ZoomSpring then
 				pcall(function()
-					if type(rawget(Table, "SetCameraToSubjectDistance")) == "function"
-						and type(rawget(Table, "GetCameraToSubjectDistance")) == "function"
-						and rawget(Table, "FIRST_PERSON_DISTANCE_THRESHOLD")
-						and rawget(Table, "lastCameraTransform") then
-						table.insert(ZoomControllers, Table)
-					end
+					ZoomSpring.goal = ZoomValue
+					ZoomSpring.x = ZoomValue
+					ZoomSpring.v = 0
 				end)
 			end
-		end
-		print(tostring(#ZoomControllers) .. " ZoomController" .. (#ZoomControllers == 1 and "" or "s"))
-	
-		-- Get spring-based ZoomModule
-		for _, Value in ipairs(getgc(true)) do
-			if type(Value) == "table" and rawget(Value, "GetZoomRadius") and rawget(Value, "SetZoomParameters") then
-				ZoomModule = Value
-				break
+
+			for _, Controller in ipairs(ZoomControllers) do
+				pcall(Controller.SetCameraToSubjectDistance, Controller, ZoomValue)
 			end
 		end
-	
-		-- Get API table that has SetZoomParameters
-		for _, Object in ipairs(getgc(true)) do
-			if type(Object) == "table" and rawget(Object, "SetZoomParameters") then
-				ZoomAPI = Object
-				break
-			end
-		end
-	
-		function GetZoom()
-			-- Preferred: use spring module
-			if ZoomModule and ZoomModule.GetZoomRadius then
-				local Success, Result = pcall(ZoomModule.GetZoomRadius, ZoomModule)
-				if Success and typeof(Result) == "number" then
-					return Result
-				end
-			end
-	
-			-- Fallback: use classic zoom controller
-			for _, ZoomController in pairs(ZoomControllers) do
-				local Success, ZoomValue = pcall(ZoomController.GetCameraToSubjectDistance, ZoomController)
-				if Success and ZoomValue and ZoomValue ~= 12.5 then
-					return ZoomValue
-				end
-			end
-	
-			return 12.5
-		end
-	
-		function SetZoom(ZoomValue)
-			if typeof(ZoomValue) ~= "number" then return end
-			if ZoomValue == LastZoom then return end
-			LastZoom = ZoomValue
-	
-			if ZoomAPI and ZoomAPI.SetZoomParameters then
-				pcall(ZoomAPI.SetZoomParameters, ZoomAPI, ZoomValue, 0)
-			end
-	
-			for _, ZoomController in pairs(ZoomControllers) do
-				pcall(ZoomController.SetCameraToSubjectDistance, ZoomController, ZoomValue)
-			end
-		end
-    end
+	end
 
 	-- Tasability Functions
 	do
