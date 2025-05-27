@@ -624,10 +624,6 @@ do
 		if ShiftLockEnabled ~= Bool then
 			ShiftLockEnabled = Bool
 
-			if Bool ~= (UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter) then
-				ContextActionService:CallFunction("MouseLockSwitchAction", Enum.UserInputState.Begin, game)
-			end
-
 			if Bool then
 				SetCursor("MouseLockedCursor", true)
 			else
