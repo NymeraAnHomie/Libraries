@@ -63,7 +63,6 @@ local Camera = Workspace.CurrentCamera
 -- Local Tables
 local States = {} -- Values for Tasability Writing
 local Tasability = {}
-local ZoomControllers = {}
 local Animation = {}
 local Frames = {}
 local Pressed = {}
@@ -140,40 +139,92 @@ end
 -- Functions
 do
     -- GetGC Functions
+    local ZoomControllers = {}
+	local ZoomModule = nil
+	local ZoomAPI = nil
+	local LastZoom = nil
+	local OriginalMinZoom, OriginalMaxZoom = nil, nil
     do
-        do -- Get ZoomControllers from getgc
-            for _,Table in pairs(getgc(true)) do
-                if type(Table) == "table" then
-                    pcall(function()
-                        if type(rawget(Table,"SetCameraToSubjectDistance")) == "function"
-                        and type(rawget(Table,"GetCameraToSubjectDistance")) == "function"
-                        and rawget(Table,"FIRST_PERSON_DISTANCE_THRESHOLD")
-                        and rawget(Table,"lastCameraTransform") then
-                            table.insert(ZoomControllers,Table)
-                        end
-                    end)
-                end
-            end
-            print(tostring(#ZoomControllers).." ZoomController"..(#ZoomControllers == 1 and "" or "s"))
-        end
-
-        function GetZoom()
-            for _,ZoomController in pairs(ZoomControllers) do
-                local Zoom = ZoomController:GetCameraToSubjectDistance()
-                if Zoom and Zoom ~= 12.5 then
-                    return Zoom
-                end
-            end
-            return 12.5
-        end
-
-        function SetZoom(Zoom)
-            for _,ZoomController in pairs(ZoomControllers) do
-                pcall(function()
-                    ZoomController:SetCameraToSubjectDistance(Zoom)
-                end)
-            end
-        end
+		-- Get ZoomControllers from getgc
+		for _, Table in pairs(getgc(true)) do
+			if type(Table) == "table" then
+				pcall(function()
+					if type(rawget(Table, "SetCameraToSubjectDistance")) == "function"
+						and type(rawget(Table, "GetCameraToSubjectDistance")) == "function"
+						and rawget(Table, "FIRST_PERSON_DISTANCE_THRESHOLD")
+						and rawget(Table, "lastCameraTransform") then
+						table.insert(ZoomControllers, Table)
+					end
+				end)
+			end
+		end
+		print(tostring(#ZoomControllers) .. " ZoomController" .. (#ZoomControllers == 1 and "" or "s"))
+	
+		-- Get spring-based ZoomModule
+		for _, Value in ipairs(getgc(true)) do
+			if type(Value) == "table" and rawget(Value, "GetZoomRadius") and rawget(Value, "SetZoomParameters") then
+				ZoomModule = Value
+				break
+			end
+		end
+	
+		-- Get API table that has SetZoomParameters
+		for _, Object in ipairs(getgc(true)) do
+			if type(Object) == "table" and rawget(Object, "SetZoomParameters") then
+				ZoomAPI = Object
+				break
+			end
+		end
+	
+		function GetZoom()
+			-- Preferred: use spring module
+			if ZoomModule and ZoomModule.GetZoomRadius then
+				local Success, Result = pcall(ZoomModule.GetZoomRadius, ZoomModule)
+				if Success and typeof(Result) == "number" then
+					return Result
+				end
+			end
+	
+			-- Fallback: use classic zoom controller
+			for _, ZoomController in pairs(ZoomControllers) do
+				local Success, ZoomValue = pcall(ZoomController.GetCameraToSubjectDistance, ZoomController)
+				if Success and ZoomValue and ZoomValue ~= 12.5 then
+					return ZoomValue
+				end
+			end
+	
+			return 12.5
+		end
+	
+		function SetZoom(ZoomValue)
+			if typeof(ZoomValue) ~= "number" then return end
+			if ZoomValue == LastZoom then return end
+			LastZoom = ZoomValue
+	
+			if not OriginalMinZoom then
+				OriginalMinZoom = LocalPlayer.CameraMinZoomDistance
+				OriginalMaxZoom = LocalPlayer.CameraMaxZoomDistance
+			end
+	
+			if ZoomAPI and ZoomAPI.SetZoomParameters then
+				pcall(ZoomAPI.SetZoomParameters, ZoomAPI, ZoomValue, 0)
+			end
+	
+			for _, ZoomController in pairs(ZoomControllers) do
+				pcall(ZoomController.SetCameraToSubjectDistance, ZoomController, ZoomValue)
+			end
+	
+			LocalPlayer.CameraMinZoomDistance = ZoomValue
+			LocalPlayer.CameraMaxZoomDistance = ZoomValue
+		end
+	
+		function RestoreZoom()
+			if OriginalMinZoom and OriginalMaxZoom then
+				LocalPlayer.CameraMinZoomDistance = OriginalMinZoom
+				LocalPlayer.CameraMaxZoomDistance = OriginalMaxZoom
+				LastZoom = nil
+			end
+		end
     end
 
 	-- Tasability Functions
@@ -575,7 +626,7 @@ do
 	    return (Character:WaitForChild("Head").Position - Camera.CFrame.Position).Magnitude > Threshold
 	end
 
-	local function GetShiftlock()
+	function GetShiftlock()
 	    if UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
 	        return true
 	    else
