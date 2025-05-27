@@ -1,6 +1,6 @@
 --[[
 	Source or Owner by nymera_src
-	Some part are taken by replay ability cuz yk im not that talented
+	Some part are taken by replay ability cuz yk im not that talented (only like 2 part lol)
 	im not gonna make ahk also i gonna update this alot to perfect it 
 
 	Tasability V1.3
