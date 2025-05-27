@@ -1005,9 +1005,19 @@ do
 	
 	    if Input.KeyCode == GetKeyCode(Controls.LoopForward) then
 	        States.LoopingForward = false
+			RestoreZoom()
 	    elseif Input.KeyCode == GetKeyCode(Controls.LoopBackward) then
 	        States.LoopingBackward = false
+			RestoreZoom()
 	    end
+	end)
+
+	task.spawn(function() -- Frame Handling
+		while true do
+			if not States.Reading or not States.Frozen then
+				RestoreZoom()
+			end
+		end
 	end)
 	
 	task.spawn(function() -- Frame Handling
