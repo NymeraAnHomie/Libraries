@@ -913,7 +913,7 @@ do
 			States.IsPaused = false
 	        Notify("Writing Mode", "Now in writing mode.", 3)
 	    elseif Input.KeyCode == GetKeyCode(Controls.Test) then
-	        LoadTas(tostring(States.Tas))
+	        LoadTas(tostring(States.Tas), true)
 	    elseif Input.KeyCode == GetKeyCode(Controls.AdvanceFrame) then
 	        if States.Writing and not States.Reading then
 	            States.Frozen = false
