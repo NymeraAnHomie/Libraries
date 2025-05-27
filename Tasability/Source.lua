@@ -1,16 +1,3 @@
---[[
-	Source or Owner by nymera_src
-	Some part are taken by replay ability cuz yk im not that talented (only like 2 part lol)
-	im not gonna make ahk also i gonna update this alot to perfect it 
-
-	Tasability V1.3
-	[+] Bypassed Some Anticheats
-	[+] Added Animation Functions
-	[+] Added QOL Features (Settings, Keybinds)
-	[+] Added Mobile Support
-	[+] Fein
-]]
-
 local Controls = {
     Frozen = "E",
     Wipe = "Delete",
@@ -183,7 +170,11 @@ do
 		end
 
 		print(("# ZoomControllers found: %d"):format(#ZoomControllers))
-
+		
+		local function IsFiniteNumber(Value)
+			return typeof(Value) == "number" and Value == Value and Value < math.huge
+		end
+		
 		function GetZoom()
 			if ZoomAPI and typeof(ZoomAPI.GetZoomRadius) == "function" then
 				local Success, Value = pcall(ZoomAPI.GetZoomRadius, ZoomAPI)
@@ -205,10 +196,6 @@ do
 			end
 
 			return nil
-		end
-
-		local function IsFiniteNumber(Value)
-			return typeof(Value) == "number" and Value == Value and Value < math.huge
 		end
 
 		function SetZoom(ZoomValue)
@@ -488,7 +475,7 @@ do
 			end
 			
 			-- Connect Events
-			Humanoid.Died:connect(function(...)
+			Humanoid.Died:Connect(function(...)
 				if Animation.Disabled then 
 					return 
 				end
@@ -496,7 +483,7 @@ do
 				Pose = "Dead"
 			end)
 
-			Humanoid.Running:connect(function(Speed)
+			Humanoid.Running:Connect(function(Speed)
 				if Animation.Disabled then 
 					return 
 				end
@@ -513,7 +500,7 @@ do
 				end
 			end)
 
-			Humanoid.Jumping:connect(function(...)
+			Humanoid.Jumping:Connect(function(...)
 				if Animation.Disabled then 
 					return 
 				end
@@ -523,7 +510,7 @@ do
 				Pose = "Jumping"
 			end)
 
-			Humanoid.Climbing:connect(function(Speed)
+			Humanoid.Climbing:Connect(function(Speed)
 				if Animation.Disabled then 
 					return 
 				end
@@ -533,7 +520,7 @@ do
 				Pose = "Climbing"
 			end)
 
-			Humanoid.GettingUp:connect(function(...)
+			Humanoid.GettingUp:Connect(function(...)
 				if Animation.Disabled then 
 					return 
 				end
@@ -541,7 +528,7 @@ do
 				Pose = "GettingUp"
 			end)
 
-			Humanoid.FreeFalling:connect(function(...)
+			Humanoid.FreeFalling:Connect(function(...)
 				if Animation.Disabled then 
 					return 
 				end
@@ -552,7 +539,7 @@ do
 				Pose = "FreeFall"
 			end)
 
-			Humanoid.FallingDown:connect(function(...)
+			Humanoid.FallingDown:Connect(function(...)
 				if Animation.Disabled then 
 					return 
 				end
@@ -560,7 +547,7 @@ do
 				Pose = "FallingDown"
 			end)
 
-			Humanoid.Seated:connect(function(...)
+			Humanoid.Seated:Connect(function(...)
 				if Animation.Disabled then 
 					return 
 				end
@@ -569,7 +556,7 @@ do
 				Pose = "Seated"
 			end)
 
-			Humanoid.PlatformStanding:connect(function(...)
+			Humanoid.PlatformStanding:Connect(function(...)
 				if Animation.Disabled then 
 					return 
 				end
@@ -577,7 +564,7 @@ do
 				Pose = "PlatformStanding"
 			end)
 
-			Humanoid.Swimming:connect(function(Speed)
+			Humanoid.Swimming:Connect(function(Speed)
 				if Animation.Disabled then 
 					return 
 				end
@@ -745,7 +732,7 @@ do
 			if Amount then
 				FrameSkipperAmount = Amount
 			else
-				Notify("Error", "Please enter a valid number", 3)
+				Notify("Error", "enter a valid number you silly", 3)
 			end
 		end})
 		Main:AddButton({Name = "Skip Forward", Callback = function()
@@ -1084,12 +1071,12 @@ do
 					if Frame.Emote ~= LastPlayedEmote then
 					    if LastPlayedEmote then
 					        for _, Track in ipairs(Humanoid:GetPlayingAnimationTracks()) do
-					            local AnimData = AnimTable[LastPlayedEmote]
-								local AnimId = AnimData and AnimData[1] and AnimData[1].Anim and AnimData[1].Anim.AnimationId
-								if AnimId and Track.Animation and Track.Animation.AnimationId == AnimId then
-								    Track:Stop(0.1)
+								local PlayingId = Track.Animation and Track.Animation.AnimationId
+								if PlayingId and AnimTable[LastPlayedEmote]
+									and PlayingId == AnimTable[LastPlayedEmote][1].Anim.AnimationId then
+									Track:Stop(0)
 								end
-					        end
+							end
 					    end
 					
 						if Frame.Emote and not AnimTable[Frame.Emote] then
@@ -1182,3 +1169,16 @@ do
 end
 
 -- That was painful I'll be damn ain't it?
+
+--[[
+	Source or Owner by nymera_src
+	Some part are taken by replay ability cuz yk im not that talented (only like 2 part lol)
+	im not gonna make ahk also i gonna update this alot to perfect it 
+
+	Tasability V1.3
+	[+] Bypassed Some Anticheats
+	[+] Added Animation Functions
+	[+] Added QOL Features (Settings, Keybinds)
+	[+] Added Mobile Support
+	[+] Fein
+]]
