@@ -274,6 +274,7 @@ do
 		            AssemblyAngularVelocity = SerializeVector3(frame.AssemblyAngularVelocity),
 		            MousePosition = SerializeVector2(frame.MousePosition),
 		            Shiftlock = frame.Shiftlock,
+					Zoom = frame.Zoom,
 		            Pose = frame.Pose,
 		            State = frame.State,
 		            Emote = frame.Emote
@@ -319,12 +320,13 @@ do
 	end
 	
 	-- Animations Functions
+	local CurrentAnim = ""
+	local CurrentAnimTrack = nil
+	local CurrentAnimInstance = nil
+	local CurrentAnimSpeed = 1.0
+	local AnimTable = {}
+	local AnimNameLookup = {}
 	do
-		local CurrentAnim = ""
-		local CurrentAnimTrack = nil
-		local CurrentAnimInstance = nil
-		local CurrentAnimSpeed = 1.0
-		local AnimTable = {}
 		local AnimNames = { 
 			Idle = 	{ { Id = "http://www.roblox.com/asset/?id=180435571", Weight = 8 }, { Id = "http://www.roblox.com/asset/?id=180435792", Weight = 1 } },
 			Walk = 	{ { Id = "http://www.roblox.com/asset/?id=180426354", Weight = 10 } }, 
@@ -357,7 +359,6 @@ do
 			Cheer = { { Id = "http://www.roblox.com/asset/?id=129423030", Weight = 10 } }
 		}
 		
-		local AnimNameLookup = {}
 		for name in pairs(AnimNames) do
 			AnimNameLookup[string.lower(name)] = name
 		end
@@ -383,7 +384,7 @@ do
 				end
 			end
 			
-			local function StopAllAnimations(Humanoid)
+			function StopAllAnimations(Humanoid)
 				for _, Track in ipairs(Humanoid:GetPlayingAnimationTracks()) do
 					Track:Stop()
 				end
@@ -391,14 +392,14 @@ do
 				CurrentAnimInstance = nil
 			end
 			
-			local function SetAnimationSpeed(Number)
+			function SetAnimationSpeed(Number)
 				if Number ~= CurrentAnimSpeed then
 					CurrentAnimSpeed = Number
 					CurrentAnimTrack:AdjustSpeed(CurrentAnimSpeed)
 				end
 			end
 			
-			local function PlayAnimation(AnimName, TransitionTime, Humanoid)
+			function PlayAnimation(AnimName, TransitionTime, Humanoid)
 				local List = AnimTable[AnimName]
 				if not List then return end
 			
@@ -577,7 +578,7 @@ do
 	    end
 	end
 	
-	local function SetCursor(CursorName, StayinMiddle)
+	function SetCursor(CursorName, StayinMiddle)
 		local CursorData = Cursors[CursorName]
 		CursorIcon = CursorData.Icon
 		CursorSize = CursorData.Size
@@ -599,7 +600,7 @@ do
 		end
 	end
 	
-	local function SetFrame(index, preserveFuture)
+	function SetFrame(index, preserveFuture)
 		if not Frames[index] then return end
 	
 		Index = index
@@ -982,45 +983,60 @@ do
 	
 	task.spawn(function() -- Reading
 	    while true do
-			pcall(function() -- Sometime old tas file doe not met the option to read causing the script to break
-		        if States.Reading and Index <= #Frames and not States.IsPaused then
-		            local Frame = Frames[Index]
-		            if Frame then
-						HumanoidRootPart.CFrame = Frame.CFrame
-						HumanoidRootPart.Velocity = Frame.Velocity
-						HumanoidRootPart.AssemblyLinearVelocity = Frame.AssemblyLinearVelocity
-						HumanoidRootPart.AssemblyAngularVelocity = Frame.AssemblyAngularVelocity
-						Camera.CFrame = Frame.Camera
-						Pose = Frame.Pose
-						SetShiftLock(Frame.Shiftlock)
-                        SetZoom(Frame.Zoom)
-						Humanoid:ChangeState(Enum.HumanoidStateType[Frame.State])
-						HumanoidState = tostring(Frame.State)
-					
-						if Frame.Emote and Frame.Emote ~= LastPlayedEmote then
-							PlayAnimation(Frame.Emote, 0.1, Humanoid)
-							LastPlayedEmote = Frame.Emote
-						end
-						if Frame.Pose ~= Pose then
-						    PlayAnimation(Frame.Pose, 0.1, Humanoid)
-						    Pose = Frame.Pose
-						end
-					end
-					Index = Index + 1
-					if Index > #Frames and not States.Finished then
-					    States.Finished = true
-					    States.Reading = false
-					    LastPlayedEmote = nil
-					
-					    if not OrionLib.Flags["Disable Finish Notifications"].Value then
-					        local Elapsed = tick() - PlaybackStart
-							local EstimatedTime = string.format("Playback duration: %.2f seconds", Elapsed)
-					        Notify("TAS Complete", EstimatedTime, 5)
-							print("TAS Complete: ", EstimatedTime) -- For People Who can't read fast lol
+	        if States.Reading and Index <= #Frames and not States.IsPaused then
+	            local Frame = Frames[Index]
+	            if Frame then
+					HumanoidRootPart.CFrame = Frame.CFrame
+					HumanoidRootPart.Velocity = Frame.Velocity
+					HumanoidRootPart.AssemblyLinearVelocity = Frame.AssemblyLinearVelocity
+					HumanoidRootPart.AssemblyAngularVelocity = Frame.AssemblyAngularVelocity
+					Camera.CFrame = Frame.Camera
+					Pose = Frame.Pose
+					SetShiftLock(Frame.Shiftlock)
+                    SetZoom(Frame.Zoom)
+					Humanoid:ChangeState(Enum.HumanoidStateType[Frame.State])
+					HumanoidState = tostring(Frame.State)
+				
+					if Frame.Emote ~= LastPlayedEmote then
+					    if LastPlayedEmote then
+					        for _, Track in ipairs(Humanoid:GetPlayingAnimationTracks()) do
+					            local AnimData = AnimTable[LastPlayedEmote]
+								local AnimId = AnimData and AnimData[1] and AnimData[1].Anim and AnimData[1].Anim.AnimationId
+								if AnimId and Track.Animation and Track.Animation.AnimationId == AnimId then
+								    Track:Stop(0.1)
+								end
+					        end
 					    end
+					
+						if Frame.Emote and not AnimTable[Frame.Emote] then
+						    warn("Bad Data: Unknown emote during playback:", Frame.Emote)
+						end
+					
+					    if Frame.Emote then
+					        PlayAnimation(Frame.Emote, 0.1, Humanoid)
+					    end
+					
+					    LastPlayedEmote = Frame.Emote
 					end
-		        end
-			end)
+					if Frame.Pose ~= Pose then
+					    PlayAnimation(Frame.Pose, 0.1, Humanoid)
+					    Pose = Frame.Pose
+					end
+				end
+				Index = Index + 1
+				if Index > #Frames and not States.Finished then
+				    States.Finished = true
+				    States.Reading = false
+				    LastPlayedEmote = nil
+				
+				    if not OrionLib.Flags["Disable Finish Notifications"].Value then
+				        local Elapsed = tick() - PlaybackStart
+						local EstimatedTime = string.format("Playback duration: %.2f seconds", Elapsed)
+				        Notify("TAS Complete", EstimatedTime, 5)
+						print("TAS Complete, ", EstimatedTime) -- For people who can't read fast lol
+				    end
+				end
+	        end
 	        RunService.RenderStepped:Wait()
 	    end
 	end)
