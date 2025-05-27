@@ -201,28 +201,12 @@ do
 			if ZoomValue == LastZoom then return end
 			LastZoom = ZoomValue
 	
-			if not OriginalMinZoom then
-				OriginalMinZoom = LocalPlayer.CameraMinZoomDistance
-				OriginalMaxZoom = LocalPlayer.CameraMaxZoomDistance
-			end
-	
 			if ZoomAPI and ZoomAPI.SetZoomParameters then
 				pcall(ZoomAPI.SetZoomParameters, ZoomAPI, ZoomValue, 0)
 			end
 	
 			for _, ZoomController in pairs(ZoomControllers) do
 				pcall(ZoomController.SetCameraToSubjectDistance, ZoomController, ZoomValue)
-			end
-	
-			LocalPlayer.CameraMinZoomDistance = ZoomValue
-			LocalPlayer.CameraMaxZoomDistance = ZoomValue
-		end
-	
-		function RestoreZoom()
-			if OriginalMinZoom and OriginalMaxZoom then
-				LocalPlayer.CameraMinZoomDistance = OriginalMinZoom
-				LocalPlayer.CameraMaxZoomDistance = OriginalMaxZoom
-				LastZoom = nil
 			end
 		end
     end
@@ -910,13 +894,11 @@ do
 		    States.Writing = true
 		    States.Frozen = true
 		    SetFrame(Index + 1, true)
-			RestoreZoom()
 		end)
 		Menu:AddButton("Step Backward", function()
 		    States.Writing = true
 		    States.Frozen = true
 		    SetFrame(Index - 1, false)
-			RestoreZoom()
 		end)
 		Menu:AddButton("Forward", nil, function()
 	        States.LoopingForward = true
@@ -925,7 +907,6 @@ do
 	        States.Writing = true
 	    end, function()
 	        States.LoopingForward = false
-			RestoreZoom()
 	    end)
 		Menu:AddButton("Backward", nil, function()
 	        States.LoopingBackward = true
@@ -933,8 +914,7 @@ do
 	        States.Frozen = true
 	        States.Writing = true
 	    end, function()
-	        States.LoopingBackward = false
-			RestoreZoom()
+			States.LoopingBackward = false
 	    end)
 	end
 	end
@@ -982,13 +962,11 @@ do
 	        States.Frozen = true
 			States.IsPaused = false
 	        SetFrame(Index + 1, true)
-			RestoreZoom()
 	    elseif Input.KeyCode == GetKeyCode(Controls.Backward) then
 	        States.Writing = true
 	        States.Frozen = true
 			States.IsPaused = false
 	        SetFrame(Index - 1, false)
-			RestoreZoom()
 	    elseif Input.KeyCode == GetKeyCode(Controls.LoopForward) then
 	        States.LoopingForward = true
 			States.LoopingBackward = false
@@ -1011,20 +989,9 @@ do
 	
 	    if Input.KeyCode == GetKeyCode(Controls.LoopForward) then
 	        States.LoopingForward = false
-			RestoreZoom()
 	    elseif Input.KeyCode == GetKeyCode(Controls.LoopBackward) then
 	        States.LoopingBackward = false
-			RestoreZoom()
 	    end
-	end)
-
-	task.spawn(function() -- Frame Handling
-		while true do
-			if not States.Reading or not States.Frozen then
-				RestoreZoom()
-			end
-			RunService.RenderStepped:Wait()
-		end
 	end)
 	
 	task.spawn(function() -- Frame Handling
