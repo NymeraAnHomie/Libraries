@@ -643,6 +643,7 @@ do
 		README:AddParagraph("Backup System", "Every time a TAS file is saved, a backup is automatically created if the file already exists. These backups are numbered (e.g., .bak1, .bak2, etc.) to ensure previous versions are preserved. This prevents accidental loss of data and lets you recover earlier versions of your TAS.")
 		
 		local Main = Window:MakeTab({Name = "Main", Icon = "rbxassetid://10723374641"})
+		Main:AddSection({Name = "Tasability"})
 		local FileDropdown = Main:AddDropdown({Name = "Files",  Options = GetFiles(),  Callback = function(Value)
 		    States.Tas = Value
 		end})
@@ -656,6 +657,8 @@ do
 		Main:AddButton({Name = "Save Selected File", Callback = function()
 		    SaveTas(States.Tas)
 		    FileDropdown:Refresh(GetFiles(), true)
+			task.wait(0.1)
+			FileDropdown:Set(States.Tas)
 		end})
 		Main:AddButton({Name = "Refresh Lists", Callback = function()
 		    FileDropdown:Refresh(GetFiles(), true)
@@ -678,7 +681,11 @@ do
 			Notify("Writing Mode", "Now writing at the end of TAS: " .. States.Tas, 3)
 		end})
 		
+		Main:AddSection({Name = "Extras"})
+		Main:AddToggle({Name = "Read Shiftlock", Save = true, Flag = "Read Shiftlock"})
+		
 		local Settings = Window:MakeTab({Name = "Settings", Icon = "rbxassetid://10734950309"})
+		Settings:AddSection({Name = "Configuration"})
 		Settings:AddToggle({Name = "Disable Tasability Notification", Save = true, Flag = "Disable Tasability Notifications"})
 		Settings:AddToggle({Name = "Disable Finish Notification", Save = true, Flag = "Disable Finish Notifications"})
 		Settings:AddToggle({Name = "Disable Frozen Mode Lock Camera", Save = true, Flag = "Disable Frozen Mode Lock Camera"})
@@ -992,11 +999,12 @@ do
 					HumanoidRootPart.AssemblyAngularVelocity = Frame.AssemblyAngularVelocity
 					Camera.CFrame = Frame.Camera
 					Pose = Frame.Pose
-					SetShiftLock(Frame.Shiftlock)
                     SetZoom(Frame.Zoom)
 					Humanoid:ChangeState(Enum.HumanoidStateType[Frame.State])
 					HumanoidState = tostring(Frame.State)
-				
+					if OrionLib.Flags["Read Shiftlock"].Value then
+						SetShiftLock(Frame.Shiftlock)
+					end
 					if Frame.Emote ~= LastPlayedEmote then
 					    if LastPlayedEmote then
 					        for _, Track in ipairs(Humanoid:GetPlayingAnimationTracks()) do
