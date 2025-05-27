@@ -1,3 +1,16 @@
+--[[
+	Source or Owner by nymera_src
+	Some part are taken by replay ability cuz yk im not that talented
+	im not gonna make ahk also i gonna update this alot to perfect it 
+
+	Tasability V1.3
+	[+] Bypassed Some Anticheats
+	[+] Added Animation Functions
+	[+] Added QOL Features (Settings, Keybinds)
+	[+] Added Mobile Support
+	[+] Fein
+]]
+
 local Controls = {
     Frozen = "E",
     Wipe = "Delete",
@@ -1169,15 +1182,3 @@ do
 end
 
 -- That was painful I'll be damn ain't it?
-
---[[
-	Source or Owner by nymera_src
-	Some part are taken by replay ability cuz yk im not that talented
-	
-	Tasability V1.3
-	[+] Bypassed Some Anticheats
-	[+] Added Animation Functions
-	[+] Added QOL Features (Settings, Keybinds)
-	[+] Added Mobile Support
-	[+] Fein
-]]
