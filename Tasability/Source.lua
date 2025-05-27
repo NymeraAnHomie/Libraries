@@ -6,10 +6,10 @@ local Controls = {
     Create = "Two",
     Test = "Three",
 	AdvanceFrame = "G",
-    Backward = "Z",
-    Forward = "X",
-    LoopBackward = "C",
-    LoopForward = "V"
+    Backward = "H",
+    Forward = "J",
+    LoopBackward = "F",
+    LoopForward = "G"
 }
 
 local Cursors = {
@@ -67,6 +67,9 @@ local ZoomControllers = {}
 local Animation = {}
 local Frames = {}
 local Pressed = {}
+
+-- Flags Variables
+local FrameSkipperAmount = 1
 
 -- Variables
 local Index = 1
@@ -208,7 +211,7 @@ do
 	        Notify("Action", "Wiped and state are set to none.", 3)
 		end
 		
-		function LoadTas(fileName)
+		function LoadTas(fileName, ShouldRead)
 		    local filePath = "Tasability/PC/Files/" .. fileName .. ".json"
 		    if isfile(filePath) then
 		        local fileData = readfile(filePath)
@@ -233,12 +236,14 @@ do
 		            })
 		        end
 		        
-		        States.Reading = true
+		        States.Reading = ShouldRead
 				States.Finished = false
 				PlaybackStart = tick()
 		        States.Writing = false
 		        States.Frozen = false
 				States.IsPaused = false
+
+				Notify("TAS Loaded", "Successfully loaded '" .. fileName .. "' with " .. tostring(#Frames) .. " frames.", 4)
 		    else
 		        Notify("Error", "TAS file not found", 3)
 		    end
@@ -653,19 +658,21 @@ do
 		Main:AddButton({Name = "Save Selected File", Callback = function()
 		    SaveTas(States.Tas)
 		    FileDropdown:Refresh(GetFiles(), true)
-			task.wait(0.1)
-			FileDropdown:Set(States.Tas)
+			task.wait(0.14)
+			FileDropdown:Set(tostring(States.Tas))
 		end})
 		Main:AddButton({Name = "Refresh Lists", Callback = function()
 		    FileDropdown:Refresh(GetFiles(), true)
+			task.wait(0.14)
+			FileDropdown:Set(tostring(States.Tas))
 		end})
 		Main:AddButton({Name = "Start Writing at the end of selected tas", Callback = function()
 			if not States.Tas then
-				Notify("Error", "No TAS file selected!", 3)
+				Notify("Error", "No TAS file selected", 3)
 				return
 			end
 
-			LoadTas(States.Tas)
+			LoadTas(States.Tas, false)
 
 			if #Frames > 0 then
 				SetFrame(#Frames)
@@ -673,8 +680,25 @@ do
 
 			States.Writing = true
 			States.Frozen = true
-			States.Reading = false
 			Notify("Writing Mode", "Now writing at the end of TAS: " .. States.Tas, 3)
+		end})
+
+		Main:AddSection({Name = "Frame Skipper"})
+		Main:AddTextbox({Name = "Frame Amount", Default = tostring(FrameSkipperAmount), TextDisappear = false, Callback = function(Value)
+			local Amount = tonumber(Value)
+			if Amount then
+				FrameSkipperAmount = Amount
+			else
+				Notify("Error", "Please enter a valid number", 3)
+			end
+		end})
+		Main:AddButton({Name = "Skip Forward", Callback = function()
+			if States.Reading and States.Tas then
+				States.IsPaused = true
+				Index = math.min(Index + FrameSkipperAmount, #Frames)
+				SetFrame(Index)
+				Notify("TAS", "Skipped forward " .. FrameSkipperAmount .. " frames", 3)
+			end
 		end})
 		
 		Main:AddSection({Name = "Extras"})
@@ -829,7 +853,7 @@ do
 		    Notify("Writing Mode", "Now in writing mode.", 3)
 		end)
 		Menu:AddButton("Test", function()
-		    LoadTas(tostring(States.Tas))
+		    LoadTas(tostring(States.Tas), true)
 		end)
 		Menu:AddButton("Step Forward", function()
 		    States.Writing = true
