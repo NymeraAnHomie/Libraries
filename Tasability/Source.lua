@@ -72,7 +72,6 @@ local FrameSkipperAmount = 1
 
 -- Variables
 local Index = 1
-local SendPacketQueue = Instance.new("RemoteEvent", cloneref(game:GetService("ReplicatedStorage"))) -- Use for sending fake movement packets
 local CursorHolder = Instance.new("ScreenGui", cloneref(game:GetService("CoreGui")))
 local Cursor = Instance.new("ImageLabel", CursorHolder)
 local CursorIcon = nil
@@ -493,9 +492,48 @@ do
 					CurrentAnimTrack.Priority = Enum.AnimationPriority.Action
 					CurrentAnimTrack:Play(TransitionTime)
 					CurrentAnimInstance = Anim
-					EmotePlaying = AnimName
+					CurrentAnim = AnimName
+			
+					if EmoteNames[AnimName:lower()] ~= nil then
+						EmotePlaying = AnimName
+					else
+						EmotePlaying = nil
+					end
 				end
 			end
+			
+			function StopEmote()
+				if EmotePlaying then
+					for _, track in ipairs(Humanoid:GetPlayingAnimationTracks()) do
+						if track.Animation and track.Animation.AnimationId then
+							local id = track.Animation.AnimationId
+							local anims = AnimTable[EmotePlaying]
+							if anims then
+								for _, entry in ipairs(anims) do
+									if entry.Anim.AnimationId == id then
+										track:Stop(0.1)
+									end
+								end
+							end
+						end
+					end
+					EmotePlaying = nil
+				end
+			end
+			
+			Humanoid.StateChanged:Connect(function(old, new)
+				local InterruptingStates = {
+					[Enum.HumanoidStateType.Running] = true,
+					[Enum.HumanoidStateType.Jumping] = true,
+					[Enum.HumanoidStateType.Freefall] = true,
+					[Enum.HumanoidStateType.Climbing] = true,
+					[Enum.HumanoidStateType.Swimming] = true
+				}
+			
+				if InterruptingStates[New] then
+					StopEmote()
+				end
+			end)
 			
 			-- Connect Events
 			Humanoid.Died:Connect(function(...)
