@@ -987,7 +987,7 @@ do
 	        if States.Writing and not States.Reading then
 	            States.Frozen = false
 	        end
-	        task.wait(0.1)
+	        RunService.RenderStepped:Wait()
 	        States.Frozen = true
 		elseif Input.KeyCode == GetKeyCode(Controls.PauseReading) then
 			States.IsPaused = not States.IsPaused
