@@ -139,12 +139,12 @@ end
 -- Functions
 do
     -- GetGC Functions
-	local ZoomControllers = {}
-	local ZoomModule = nil
-	local ZoomAPI = nil
-	local ZoomSpring = nil
-	local LastZoom = nil
-    do
+	do
+		local ZoomControllers = {}
+		local ZoomAPI = nil
+		local ZoomSpring = nil
+		local LastZoom = nil
+	
 		for _, Obj in ipairs(getgc(true)) do
 			if type(Obj) == "table" then
 				if type(rawget(Obj, "SetCameraToSubjectDistance")) == "function"
@@ -153,28 +153,28 @@ do
 					and rawget(Obj, "lastCameraTransform") then
 					table.insert(ZoomControllers, Obj)
 				end
-
+	
 				if not ZoomAPI
 					and rawget(Obj, "SetZoomParameters")
 					and rawget(Obj, "GetZoomRadius") then
 					ZoomAPI = Obj
 				end
-
+	
 				if not ZoomSpring
-					and rawget(Obj, "goal")
-					and rawget(Obj, "x")
-					and rawget(Obj, "v") then
+					and typeof(rawget(Obj, "goal")) == "number"
+					and typeof(rawget(Obj, "x")) == "number"
+					and typeof(rawget(Obj, "v")) == "number" then
 					ZoomSpring = Obj
 				end
 			end
 		end
-
+	
 		print(("# ZoomControllers found: %d"):format(#ZoomControllers))
-		
+	
 		local function IsFiniteNumber(Value)
 			return typeof(Value) == "number" and Value == Value and Value < math.huge
 		end
-		
+	
 		function GetZoom()
 			if ZoomAPI and typeof(ZoomAPI.GetZoomRadius) == "function" then
 				local Success, Value = pcall(ZoomAPI.GetZoomRadius, ZoomAPI)
@@ -182,39 +182,62 @@ do
 					return Value
 				end
 			end
-
+	
 			for _, Controller in ipairs(ZoomControllers) do
 				local Success, Value = pcall(Controller.GetCameraToSubjectDistance, Controller)
 				if Success and typeof(Value) == "number" then
 					return Value
 				end
 			end
-
+	
 			local Head = Character and Character:FindFirstChild("Head")
 			if Head then
 				return (Camera.CFrame.Position - Head.Position).Magnitude
 			end
-
+	
 			return nil
 		end
-
+	
 		function SetZoom(ZoomValue)
-			if not IsFiniteNumber(ZoomValue) then return end
+			if not IsFiniteNumber(ZoomValue) then
+				warn("Invalid ZoomValue:", ZoomValue)
+				return
+			end
+		
 			if LastZoom and ZoomValue == LastZoom then return end
 			LastZoom = ZoomValue
-
+		
+			local Success = false
+		
+			-- ZoomAPI support (default in alot of games)
 			if ZoomAPI and typeof(ZoomAPI.SetZoomParameters) == "function" then
-				pcall(ZoomAPI.SetZoomParameters, ZoomAPI, ZoomValue, 0)
-			elseif ZoomSpring then
-				pcall(function()
-					ZoomSpring.goal = ZoomValue
-					ZoomSpring.x = ZoomValue
-					ZoomSpring.v = 0
+				local ok = pcall(function()
+					ZoomAPI:SetZoomParameters(ZoomAPI, ZoomValue, 0)
+				end)
+				if ok then Success = true end
+			end
+		
+			-- ZoomSpring support (legacy spring direct access)
+			if not Success and ZoomSpring then
+				local ok = pcall(function()
+					if typeof(ZoomSpring.goal) == "number"
+						and typeof(ZoomSpring.x) == "number"
+						and typeof(ZoomSpring.v) == "number" then
+						local RealV = rawget(ZoomSpring, "v")
+						rawset(ZoomSpring, "goal", ZoomValue)
+						rawset(ZoomSpring, "x", ZoomValue)
+						rawset(ZoomSpring, "v", RealV)
+						Success = true
+					end
 				end)
 			end
-
+		
+			-- ZoomControllers (direct distance override)
 			for _, Controller in ipairs(ZoomControllers) do
-				pcall(Controller.SetCameraToSubjectDistance, Controller, ZoomValue)
+				local ok = pcall(function()
+					Controller:SetCameraToSubjectDistance(ZoomValue)
+				end)
+				if ok then Success = true end
 			end
 		end
 	end
@@ -633,11 +656,13 @@ do
 		CursorOffset = CursorData.Offset
 		
 		CursorHolder.IgnoreGuiInset = true
+		CursorHolder.DisplayOrder = 99999
+		CursorHolder.ZIndexBehavior = Enum.ZIndexBehavior.Global
 		Cursor.Image = CursorIcon
 		Cursor.Size = CursorSize
 		Cursor.BackgroundTransparency = 1
 		Cursor.BorderSizePixel = 0
-		Cursor.ZIndex = 99999
+		Cursor.ZIndex = math.huge
 		Cursor.Visible = true
 		Resolution = CursorHolder.AbsoluteSize
 
@@ -660,6 +685,7 @@ do
 		HumanoidRootPart.AssemblyAngularVelocity = Frame.AssemblyAngularVelocity
 		Camera.CFrame = Frame.Camera
 		Humanoid:ChangeState(Enum.HumanoidStateType[Frame.State])
+		SetZoom(Frame.Zoom)
 	
 		if States.Writing and not States.LoopingForward and not preserveFuture then
 			for i = #Frames, index + 1, -1 do
@@ -1174,11 +1200,13 @@ end
 	Source or Owner by nymera_src
 	Some part are taken by replay ability cuz yk im not that talented (only like 2 part lol)
 	im not gonna make ahk also i gonna update this alot to perfect it 
-
+	zoomcontroller isn't universal so an game might break the entire script
+	
 	Tasability V1.3
 	[+] Bypassed Some Anticheats
 	[+] Added Animation Functions
 	[+] Added QOL Features (Settings, Keybinds)
 	[+] Added Mobile Support
+	[+] Fixed ZoomController (I Hope)
 	[+] Fein
 ]]
