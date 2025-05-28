@@ -711,6 +711,7 @@ do
 		local README = Window:MakeTab({Name = "README", Icon = "rbxassetid://10734907168"})
 		README:AddParagraph("FPS Importance", "Use a specific FPS cap and do not change it until you're done making a TAS or are currently not working on a TAS. Changing it will lead to incorrect replay speeds (too fast or too slow).")
 		README:AddParagraph("Backup System", "Every time a TAS file is saved, a backup is automatically created if the file already exists. These backups are numbered (e.g., .bak1, .bak2, etc.) to ensure previous versions are preserved. This prevents accidental loss of data and lets you recover earlier versions of your TAS.")
+		README:AddParagraph("ME!!!!!!!", "do not leave immediately if you're saving an tas bcuz saving delete the file and make it again cuz if u do ur cooked")
 		
 		local Main = Window:MakeTab({Name = "Main", Icon = "rbxassetid://10723374641"})
 		Main:AddSection({Name = "Tasability"})
