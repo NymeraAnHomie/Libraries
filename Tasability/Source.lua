@@ -675,18 +675,17 @@ do
 	
 	function SetFrame(index, preserveFuture)
 		if not Frames[index] then return end
-	
+
 		Index = index
 		local Frame = Frames[index]
-	
+
 		HumanoidRootPart.CFrame = Frame.CFrame
 		HumanoidRootPart.Velocity = Frame.Velocity
 		HumanoidRootPart.AssemblyLinearVelocity = Frame.AssemblyLinearVelocity
 		HumanoidRootPart.AssemblyAngularVelocity = Frame.AssemblyAngularVelocity
 		Camera.CFrame = Frame.Camera
 		Humanoid:ChangeState(Enum.HumanoidStateType[Frame.State])
-		SetZoom(Frame.Zoom)
-	
+
 		if States.Writing and not States.LoopingForward and not preserveFuture then
 			for i = #Frames, index + 1, -1 do
 				table.remove(Frames, i)
