@@ -59,6 +59,7 @@ local Character = LocalPlayer.Character
 local HumanoidRootPart = Character.HumanoidRootPart
 local Humanoid = Character.Humanoid
 local Camera = Workspace.CurrentCamera
+local GuiInset = GuiService:GetGuiInset()
 
 -- Local Tables
 local States = {} -- Values for Tasability Writing
@@ -809,9 +810,6 @@ do
 			end
 		end})
 		
-		Main:AddSection({Name = "Extras"})
-		Main:AddToggle({Name = "Read Shiftlock", Save = true, Flag = "Read Shiftlock"})
-		
 		local Settings = Window:MakeTab({Name = "Settings", Icon = "rbxassetid://10734950309"})
 		Settings:AddSection({Name = "Configuration"})
 		Settings:AddToggle({Name = "Disable Tasability Notification", Save = true, Flag = "Disable Tasability Notifications"})
@@ -1086,7 +1084,6 @@ do
 			Cursor.Size = CursorSize
 	
 			local CursorOffset = CursorOffset or Vector2.zero
-			local GuiInset = GuiService:GetGuiInset()
 			local Resolution = Resolution or Vector2.new(1920, 1080)
 	
 			local PosX, PosY
@@ -1130,9 +1127,7 @@ do
                     SetZoom(Frame.Zoom)
 					Humanoid:ChangeState(Enum.HumanoidStateType[Frame.State])
 					HumanoidState = tostring(Frame.State)
-					if OrionLib.Flags["Read Shiftlock"].Value then
-						SetShiftLock(Frame.Shiftlock)
-					end
+					SetShiftLock(Frame.Shiftlock)
 					if Frame.Emote ~= LastPlayedEmote then
 					    if LastPlayedEmote then
 					        for _, Track in ipairs(Humanoid:GetPlayingAnimationTracks()) do
