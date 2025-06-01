@@ -743,7 +743,7 @@ do
 					return
 				end
 				
-				if Humanoid.Health <= 0 then
+				if Humanoid:GetState() == Enum.HumanoidStateType.Dead then
 					Pose = "Dead"
 				end
 			end)
