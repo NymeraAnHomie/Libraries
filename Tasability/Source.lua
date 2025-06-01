@@ -1,3 +1,4 @@
+local ReadInputs = true
 local Controls = {
     Frozen = "E",
     Wipe = "Delete",
@@ -12,17 +13,26 @@ local Controls = {
     LoopForward = "V"
 }
 
+local InputBlacklist = {
+	["E"] = true,
+	["K"] = true,
+	["G"] = true,
+	["N"] = true,
+	["C"] = true,
+    ["V"] = true
+}
+
 local Cursors = {
 	["ArrowFarCursor"] = { -- Default
-		Icon = "rbxasset://textures/Cursors/KeyboardMouse/ArrowFarCursor.png";
-		Size = UDim2.fromOffset(64,64);
-		Offset = Vector2.new(-32,4);
-	};
+		Icon = "rbxasset://textures/Cursors/KeyboardMouse/ArrowFarCursor.png",
+		Size = UDim2.fromOffset(64,64),
+		Offset = Vector2.new(-32,4),
+	},
 	["MouseLockedCursor"] = { -- Shiftlock
-		Icon = "rbxasset://textures/MouseLockedCursor.png";
-		Size = UDim2.fromOffset(32,32);
-		Offset = Vector2.new(-16,20);
-	};
+		Icon = "rbxasset://textures/MouseLockedCursor.png",
+		Size = UDim2.fromOffset(32,32),
+		Offset = Vector2.new(-16,20),
+	},
 }
 
 
@@ -45,6 +55,8 @@ local Cursors = {
 -- Constants
 local Version = "V1.3"
 local Title = "Tasability - Orion Edition - " .. tostring(Version)
+local TasFilePath = "Tasability/PC/Files/"
+local AHKPath = "Tasability/PC/AHK/request.txt"
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -60,6 +72,44 @@ local HumanoidRootPart = Character.HumanoidRootPart
 local Humanoid = Character.Humanoid
 local Camera = Workspace.CurrentCamera
 local GuiInset = GuiService:GetGuiInset()
+
+local InputCodes = { -- https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
+	["A"] = 0x41;
+	["B"] = 0x42;
+	["C"] = 0x43;
+	["D"] = 0x44;
+	["E"] = 0x45;
+	["F"] = 0x46;
+	["G"] = 0x47;
+	["H"] = 0x48;
+	["I"] = 0x49;
+	["J"] = 0x4A;
+	["K"] = 0x4B;
+	["L"] = 0x4C;
+	["M"] = 0x4D;
+	["N"] = 0x4E;
+	["O"] = 0x4F;
+	["P"] = 0x50;
+	["Q"] = 0x51;
+	["R"] = 0x52;
+	["S"] = 0x53;
+	["T"] = 0x54;
+	["U"] = 0x55;
+	["V"] = 0x56;
+	["W"] = 0x57;
+	["X"] = 0x58;
+	["Y"] = 0x59;
+	["Z"] = 0x5A;
+	["Space"] = 0x20;
+	["LeftShift"] = 0x10;
+	["RightShift"] = 0x10;
+}
+
+-- Others
+local FrameIndexLabel
+local PoseLabel
+local CurrentAnimLabel
+local HumanoidStateLabel 
 
 -- Local Tables
 local States = {} -- Values for Tasability Writing
@@ -106,6 +156,8 @@ Animation.Disabled = false
 if not isfolder("Tasability") then makefolder("Tasability") end
 if not isfolder("Tasability/PC") then makefolder("Tasability/PC") end
 if not isfolder("Tasability/PC/Files") then makefolder("Tasability/PC/Files") end
+if not isfolder("Tasability/PC/AHK") then makefolder("Tasability/PC/AHK") end
+if not isfile("Tasability/PC/AHK/request.txt") then writefile("Tasability/PC/AHK/request.txt", "") end
 
 local function GetFiles()
     local files = listfiles("Tasability/PC/Files")
@@ -278,7 +330,7 @@ do
 		end
 		
 		function LoadTas(fileName, ShouldRead)
-		    local filePath = "Tasability/PC/Files/" .. fileName .. ".json"
+		    local filePath = TasFilePath .. fileName .. ".json"
 		    if isfile(filePath) then
 		        local fileData = readfile(filePath)
 		        local loadedFrames = HttpService:JSONDecode(fileData)
@@ -316,7 +368,7 @@ do
 		end
 		
 		function SaveTas(fileName)
-		    local path = "Tasability/PC/Files/" .. fileName .. ".json"
+		    local path = TasFilePath .. fileName .. ".json"
 		    local FileIndex = 1
 		    local backupPath
 		
@@ -362,7 +414,7 @@ do
 		end
 		
 		function CreateTas(Name, Content)
-		    local path = "Tasability/PC/Files/" .. Name .. ".json"
+		    local path = TasFilePath .. Name .. ".json"
 		
 		    if not isfile(path) then
 		        writefile(path, Content)
@@ -390,13 +442,35 @@ do
 		end
 	end
 	
-	-- Animations Functions
+	-- Animations
 	local CurrentAnim = ""
 	local CurrentAnimTrack = nil
 	local CurrentAnimInstance = nil
 	local CurrentAnimSpeed = 1.0
+	
+	local ToolAnim = "None"
+	local ToolAnimTime = 0
+	local ToolAnimTrack = nil
+	local ToolAnimInstance = nil
+	local CurrentToolAnimKeyframeHandler = nil
+	
+	local JumpAnimTime = 0
+	local JumpAnimDuration = 0.3
+	local FallTransitionTime = 0.3
+	
 	local AnimTable = {}
 	local AnimNameLookup = {}
+	
+	-- Joints
+	local Torso = Character:WaitForChild("Torso")
+	local RightShoulder = Torso:WaitForChild("Right Shoulder")
+	local LeftShoulder = Torso:WaitForChild("Left Shoulder")
+	local RightHip = Torso:WaitForChild("Right Hip")
+	local LeftHip = Torso:WaitForChild("Left Hip")
+	
+	local LastTick = tick()
+	
+	-- Animation Functions
 	do
 		local AnimNames = { 
 			Idle = 	{ { Id = "http://www.roblox.com/asset/?id=180435571", Weight = 8 }, { Id = "http://www.roblox.com/asset/?id=180435792", Weight = 1 } },
@@ -434,12 +508,7 @@ do
 			AnimNameLookup[string.lower(name)] = name
 		end
 		
-		local EmoteNames = { wave = false, point = false, dance1 = true, dance2 = true, dance3 = true, laugh = false, cheer = false}
-		local ToolAnim = "None"
-		local ToolAnimTime = 0
-		local JumpAnimTime = 0
-		local JumpAnimDuration = 0.3
-		local FallTransitionTime = 0.3
+		local EmoteNames = { wave = true, point = true, dance1 = true, dance2 = true, dance3 = true, laugh = true, cheer = true}
 		
 		do
 			for Name, AnimList in pairs(AnimNames) do
@@ -503,22 +572,154 @@ do
 				end
 			end
 			
+			function PlayToolAnimation(AnimName, TransitionTime, Humanoid, Priority)
+				local List = AnimTable[AnimName]
+				if not List then return end
+				if ToolAnim == "None" and not AnimTable["ToolNone"] then
+					return
+				end
+			
+				local Roll = math.random(1, List.TotalWeight)
+				local Index = 1
+				while Roll > List[Index].Weight do
+					Roll -= List[Index].Weight
+					Index += 1
+				end
+			
+				local Anim = List[Index].Anim
+			
+				if Anim ~= ToolAnimInstance then
+					if ToolAnimTrack then
+						ToolAnimTrack:Stop()
+						ToolAnimTrack:Destroy()
+					end
+			
+					ToolAnimTrack = Humanoid:LoadAnimation(Anim)
+					ToolAnimTrack.Priority = Priority or Enum.AnimationPriority.Action
+					ToolAnimTrack:Play(TransitionTime)
+			
+					ToolAnimInstance = Anim
+					ToolAnim = AnimName
+			
+					if CurrentToolAnimKeyframeHandler then
+						CurrentToolAnimKeyframeHandler:Disconnect()
+					end
+					CurrentToolAnimKeyframeHandler = ToolAnimTrack.KeyframeReached:Connect(function(name)
+						if name == "End" then
+							PlayToolAnimation(AnimName, 0.1, Humanoid, Priority)
+						end
+					end)
+				end
+			end
+			
+			function StopToolAnimations()
+				if CurrentToolAnimKeyframeHandler then
+					CurrentToolAnimKeyframeHandler:Disconnect()
+				end
+				CurrentToolAnimKeyframeHandler = nil
+			
+				if ToolAnimTrack then
+					ToolAnimTrack:Stop()
+					ToolAnimTrack:Destroy()
+				end
+				ToolAnimTrack = nil
+				ToolAnimInstance = nil
+				ToolAnim = "None"
+			end
+			
+			function AnimateTool()
+				if ToolAnim == "None" then
+					PlayToolAnimation("ToolNone", 0.1, Humanoid, Enum.AnimationPriority.Idle)
+				elseif ToolAnim == "Slash" then
+					PlayToolAnimation("ToolSlash", 0.1, Humanoid, Enum.AnimationPriority.Action)
+				elseif ToolAnim == "Lunge" then
+					PlayToolAnimation("ToolLunge", 0.1, Humanoid, Enum.AnimationPriority.Action)
+				end
+			end
+			
 			function StopEmote()
-				if EmotePlaying then
-					for _, track in ipairs(Humanoid:GetPlayingAnimationTracks()) do
-						if track.Animation and track.Animation.AnimationId then
-							local id = track.Animation.AnimationId
-							local anims = AnimTable[EmotePlaying]
-							if anims then
-								for _, entry in ipairs(anims) do
-									if entry.Anim.AnimationId == id then
-										track:Stop(0.1)
-									end
-								end
+				if not EmotePlaying then return end
+			
+				local anims = AnimTable[EmotePlaying]
+				if not anims then return end
+			
+				-- Check if it's an actual emote
+				local isEmote = EmoteNames[EmotePlaying:lower()]
+				if isEmote == nil then return end
+			
+				for _, track in ipairs(Humanoid:GetPlayingAnimationTracks()) do
+					if track.Animation and track.Animation.AnimationId then
+						for _, entry in ipairs(anims) do
+							if entry.Anim.AnimationId == track.Animation.AnimationId then
+								track:Stop(0.1)
 							end
 						end
 					end
-					EmotePlaying = nil
+				end
+			
+				EmotePlaying = nil
+			end
+
+			function Move(Time)
+				if Animation.Disabled then return end
+				if Pose == "Running" or Pose == "Standing" then
+					AnimateTool()
+				end
+
+				local DeltaTime = Time - LastTick
+				LastTick = Time
+			
+				local Amplitude = 1
+				local Frequency = 1
+				local SetAngles = false
+				local ClimbFudge = 0
+			
+				if JumpAnimTime > 0 then
+					JumpAnimTime -= DeltaTime
+				end
+			
+				-- Handle falling animation if not jumping anymore
+				if Pose == "FreeFall" and JumpAnimTime <= 0 then
+					PlayAnimation("Fall", FallTransitionTime, Humanoid)
+				elseif Pose == "Seated" then
+					PlayAnimation("Sit", 0.5, Humanoid)
+					return
+				elseif Pose == "Running" then
+					PlayAnimation("Walk", 0.1, Humanoid)
+				elseif Pose == "Dead" or Pose == "GettingUp" or Pose == "FallingDown" or Pose == "Seated" or Pose == "PlatformStanding" then
+					StopAllAnimations(Humanoid)
+					Amplitude = 0.1
+					Frequency = 1
+					SetAngles = true
+				end
+			
+				if SetAngles then
+					local DesiredAngle = Amplitude * math.sin(Time * Frequency)
+					RightShoulder:SetDesiredAngle(DesiredAngle + ClimbFudge)
+					LeftShoulder:SetDesiredAngle(DesiredAngle - ClimbFudge)
+					RightHip:SetDesiredAngle(-DesiredAngle)
+					LeftHip:SetDesiredAngle(-DesiredAngle)
+				end
+			
+				local Tool = Character:FindFirstChildOfClass("Tool")
+				if Tool and Tool:FindFirstChild("Handle") then
+					local AnimValue = Tool:FindFirstChild("toolanim")
+					if AnimValue and AnimValue:IsA("StringValue") then
+						ToolAnim = AnimValue.Value
+						AnimValue:Destroy()
+						ToolAnimTime = Time + 0.3
+					end
+			
+					if Time > ToolAnimTime then
+						ToolAnimTime = 0
+						ToolAnim = "None"
+					end
+			
+					AnimateTool()
+				else
+					StopToolAnimations()
+					ToolAnim = "None"
+					ToolAnimTime = 0
 				end
 			end
 			
@@ -531,18 +732,20 @@ do
 					[Enum.HumanoidStateType.Swimming] = true
 				}
 			
-				if InterruptingStates[New] then
+				if InterruptingStates[new] then
 					StopEmote()
 				end
 			end)
 			
 			-- Connect Events
 			Humanoid.Died:Connect(function(...)
-				if Animation.Disabled then 
-					return 
+				if Animation.Disabled then
+					return
 				end
 				
-				Pose = "Dead"
+				if Humanoid.Health <= 0 then
+					Pose = "Dead"
+				end
 			end)
 
 			Humanoid.Running:Connect(function(Speed)
@@ -668,6 +871,18 @@ do
 		
 			PlayAnimation("Idle", 0.1, Humanoid)
 			Pose = "Standing"
+			
+			task.spawn(function()
+				while Character and Character.Parent do
+					local Now = tick()
+					local DeltaTime = Now - LastTick
+					LastTick = Now
+			
+					Move(Now, DeltaTime)
+			
+					task.wait(0.033) -- Approx 30 FPS
+				end
+			end)
 		end
 	end
 	
@@ -726,7 +941,7 @@ do
 		Humanoid:ChangeState(Enum.HumanoidStateType[Frame.State])
 		SetZoom(Frame.Zoom)
 		
-		if States.Writing and not States.LoopingForward and not preserveFuture then
+		if States.Writing and not preserveFuture then
 			for i = #Frames, index + 1, -1 do
 				table.remove(Frames, i)
 			end
@@ -822,6 +1037,12 @@ do
 		Settings:AddButton({Name = "Unload", Callback = function()
 		    OrionLib:Destroy()
 		end})
+		
+		local Debugging = Window:MakeTab({Name = "Debugging", Icon = "rbxassetid://10723416057"})
+		FrameIndexLabel = Debugging:AddLabel("Frame Index: ")
+		PoseLabel = Debugging:AddLabel("Pose: ")
+		CurrentAnimLabel = Debugging:AddLabel("Current Animation: ")
+		HumanoidStateLabel = Debugging:AddLabel("Humanoid State: ")
 	end
 	
 	-- Anticheat bypasses
@@ -1217,6 +1438,17 @@ do
 				end
 			end)
 			HumanoidRootPart.Anchored = States.Frozen
+			RunService.RenderStepped:Wait()
+		end
+	end)
+	
+	task.spawn(function()
+		while true do
+			FrameIndexLabel:Set("Frame Index: " .. tostring(Index))
+			PoseLabel:Set("Pose: " .. tostring(Pose))
+			CurrentAnimLabel:Set("Current Animation: " .. tostring(CurrentAnim))
+			HumanoidState = Humanoid:GetState().Name
+			HumanoidStateLabel:Set("Humanoid State: " .. tostring(HumanoidState))
 			RunService.RenderStepped:Wait()
 		end
 	end)
