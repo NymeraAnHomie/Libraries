@@ -687,7 +687,6 @@ do
 				elseif Pose == "Running" then
 					PlayAnimation("Walk", 0.1, Humanoid)
 				elseif Pose == "Dead" or Pose == "GettingUp" or Pose == "FallingDown" or Pose == "Seated" or Pose == "PlatformStanding" then
-					StopAllAnimations(Humanoid)
 					Amplitude = 0.1
 					Frequency = 1
 					SetAngles = true
