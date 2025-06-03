@@ -1089,6 +1089,7 @@ do
 		end)
 	end
 	
+	-- States Hell Incoming!!!
 	do
 	if IsMobile then
 		function Tasability:CreateWindow()
@@ -1448,7 +1449,7 @@ do
 			CurrentAnimLabel:Set("Current Animation: " .. tostring(CurrentAnim))
 			HumanoidState = Humanoid:GetState().Name
 			HumanoidStateLabel:Set("Humanoid State: " .. tostring(HumanoidState))
-			RunService.RenderStepped:Wait()
+			RunService.Heartbeat:Wait()
 		end
 	end)
 
