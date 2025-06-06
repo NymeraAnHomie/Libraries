@@ -222,6 +222,8 @@ do
 		end
 	
 		print(("# ZoomControllers found: %d"):format(#ZoomControllers))
+		print(("# ZoomAPI found: %d"):format(ZoomAPI and 1 or 0))
+		print(("# ZoomSpring found: %d"):format(ZoomSpring and 1 or 0))
 	
 		local function IsFiniteNumber(Value)
 			return typeof(Value) == "number" and Value == Value and Value < math.huge
@@ -957,6 +959,13 @@ do
 				SetCursor("ArrowFarCursor", false)
 			end
 		end
+	end
+	
+	function AHKRequestInput(Keys)
+	    if type(Keys) ~= "table" then return end
+	
+	    local toWrite = table.concat(Keys, ",")
+	    writefile("Tasability/PC/AHK/request.txt", toWrite)
 	end
 	
 	-- Interface
