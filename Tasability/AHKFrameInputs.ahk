@@ -19,7 +19,7 @@ ReadInputs:
 	StringReplace, rawInput, rawInput, `n,, All
 
 	keys := StrSplit(rawInput, ",")
-	currentKeys := {}
+	currentKeys := []
 
 	for i, k in lastKeys {
 		if !IsInArray(k, keys) {
@@ -35,7 +35,7 @@ ReadInputs:
 	}
 
 	lastKeys := currentKeys
-	ToolTip, Frame Inputs: % rawInput
+	ToolTip, %rawInput%
 return
 
 ExitScript:
