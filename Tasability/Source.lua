@@ -111,6 +111,7 @@ local FrameIndexLabel
 local PoseLabel
 local CurrentAnimLabel
 local HumanoidStateLabel 
+local FrameInputsLabel
 
 -- Local Tables
 local States = {} -- Values for Tasability Writing
@@ -964,11 +965,9 @@ do
 		end
 	end
 	
-	function AHKRequestInput(Keys)
-	    if type(Keys) ~= "table" then return end
-	
-	    local toWrite = table.concat(Keys, ",")
-	    writefile("Tasability/PC/AHK/request.txt", toWrite)
+	function AHKRequestInput(inputTable)
+		local content = table.concat(inputTable, ",")
+		writefile("Tasability/PC/AHK/request.txt", content)
 	end
 	
 	-- Interface
@@ -1054,6 +1053,7 @@ do
 		PoseLabel = Debugging:AddLabel("Pose: ")
 		CurrentAnimLabel = Debugging:AddLabel("Current Animation: ")
 		HumanoidStateLabel = Debugging:AddLabel("Humanoid State: ")
+		FrameInputsLabel = Debugging:AddLabel("Frame Inputs: ")
 	end
 	
 	-- Anticheat bypasses
@@ -1501,6 +1501,13 @@ do
 			CurrentAnimLabel:Set("Current Animation: " .. tostring(CurrentAnim))
 			HumanoidState = Humanoid:GetState().Name
 			HumanoidStateLabel:Set("Humanoid State: " .. tostring(HumanoidState))
+
+			local outputkeys = {}
+			for key in pairs(HeldKeys) do
+				table.insert(outputkeys, key)
+			end
+			FrameInputsLabel:Set("Frame Inputs: " .. table.concat(outputkeys, ", "))
+
 			RunService.Heartbeat:Wait()
 		end
 	end)
