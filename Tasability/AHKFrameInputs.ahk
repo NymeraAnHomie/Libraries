@@ -1,11 +1,9 @@
-#NoEnv
 SendMode Input
 SetBatchLines -1
 SetWorkingDir %A_ScriptDir%
 
-Gui, Add, Text,, Tasability AHK is running...
 Gui, Add, Button, gExitScript w200, Exit AHK Playback
-Gui, Show,, Tasability AHK Input Player
+Gui, Show,, AHK Input Tester
 
 filePath := "Tasability\PC\AHK\request.txt"
 lastKeys := {}
@@ -29,13 +27,20 @@ ReadInputs:
 
 	for i, k in keys {
 		if (k != "") {
+			if (k = "LeftShift" or k = "RightShift") {
+				k := "Shift"
+			} else if (k = "Space") {
+				k := "Space"
+			} else {
+				k := StrUpper(k)
+			}
 			Send, {%k% down}
+			ToolTip, Sending: %k%
 			currentKeys.Push(k)
 		}
 	}
 
 	lastKeys := currentKeys
-	ToolTip, %rawInput%
 return
 
 ExitScript:
