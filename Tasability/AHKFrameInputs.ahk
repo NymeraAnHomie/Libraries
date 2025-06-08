@@ -1,27 +1,25 @@
-﻿#NoEnv
+#NoEnv
 SendMode Input
-SetWorkingDir %A_ScriptDir%
 SetBatchLines -1
+SetWorkingDir %A_ScriptDir%
+
+Gui, Add, Text,, Tasability AHK is running...
+Gui, Add, Button, gExitScript w200, Exit AHK Playback
+Gui, Show,, Tasability AHK Input Player
 
 filePath := "Tasability\PC\AHK\request.txt"
 lastKeys := {}
-tickInterval := 33
 
-Gui, Add, Text,, Interval (ms):
-Gui, Add, Edit, vIntervalBox w100, 33
-Gui, Add, Button, gApplyInterval w80, Apply
-Gui, Add, Button, gExitScript w200, Exit Tasability AHK
-Gui, Show,, Tasability AHK Input Player
-
-SetTimer, ReadInputs, %tickInterval%
+SetTimer, ReadInputs, 10
 return
 
 ReadInputs:
 	FileRead, rawInput, %filePath%
-	StringTrimRight, rawInput, rawInput, 0
 	StringReplace, rawInput, rawInput, `r`n,, All
 	StringReplace, rawInput, rawInput, `n,, All
+
 	keys := StrSplit(rawInput, ",")
+	currentKeys := {}
 
 	for i, k in lastKeys {
 		if !IsInArray(k, keys) {
@@ -32,19 +30,12 @@ ReadInputs:
 	for i, k in keys {
 		if (k != "") {
 			Send, {%k% down}
+			currentKeys.Push(k)
 		}
 	}
 
-	lastKeys := keys
-return
-
-ApplyInterval:
-	GuiControlGet, newVal,, IntervalBox
-	if (newVal is digit) && (newVal >= 5) {
-		tickInterval := newVal
-		SetTimer, ReadInputs, Off
-		SetTimer, ReadInputs, %tickInterval%
-	}
+	lastKeys := currentKeys
+	ToolTip, Frame Inputs: % rawInput
 return
 
 ExitScript:
