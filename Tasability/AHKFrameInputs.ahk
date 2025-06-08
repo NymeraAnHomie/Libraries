@@ -1,3 +1,4 @@
+#NoEnv
 SendMode Input
 SetBatchLines -1
 SetWorkingDir %A_ScriptDir%
@@ -6,7 +7,7 @@ Gui, Add, Button, gExitScript w200, Exit AHK Playback
 Gui, Show,, AHK Input Tester
 
 filePath := "Tasability\PC\AHK\request.txt"
-lastKeys := {}
+lastKeys := []
 
 SetTimer, ReadInputs, 10
 return
@@ -19,20 +20,24 @@ ReadInputs:
 	keys := StrSplit(rawInput, ",")
 	currentKeys := []
 
-	for i, k in lastKeys {
+	Loop % lastKeys.MaxIndex()
+	{
+		k := lastKeys[A_Index]
 		if !IsInArray(k, keys) {
 			Send, {%k% up}
 		}
 	}
 
-	for i, k in keys {
+	Loop % keys.MaxIndex()
+	{
+		k := keys[A_Index]
 		if (k != "") {
 			if (k = "LeftShift" or k = "RightShift") {
 				k := "Shift"
 			} else if (k = "Space") {
 				k := "Space"
 			} else {
-				k := StrUpper(k)
+				StringUpper, k, k
 			}
 			Send, {%k% down}
 			ToolTip, Sending: %k%
@@ -45,15 +50,18 @@ return
 
 ExitScript:
 	SetTimer, ReadInputs, Off
-	for i, k in lastKeys {
+	Loop % lastKeys.MaxIndex()
+	{
+		k := lastKeys[A_Index]
 		Send, {%k% up}
 	}
 	ExitApp
 return
 
 IsInArray(val, arr) {
-	for index, element in arr {
-		if (element = val)
+	Loop % arr.MaxIndex()
+	{
+		if (arr[A_Index] = val)
 			return true
 	}
 	return false
