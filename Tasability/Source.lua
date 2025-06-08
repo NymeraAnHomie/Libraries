@@ -104,6 +104,7 @@ local InputCodes = { -- https://docs.microsoft.com/en-us/windows/win32/inputdev/
 	["LeftShift"] = 0x10;
 	["RightShift"] = 0x10;
 }
+local HeldKeys = {}
 
 -- Others
 local FrameIndexLabel
@@ -1300,18 +1301,24 @@ do
 	-- AHK Frames
 	UserInputService.InputBegan:Connect(function(input, gp)
 		if not gp and input.UserInputType == Enum.UserInputType.Keyboard then
-			local key = input.KeyCode.Name
-			if InputCodes[key] and not InputBlacklist[key] then
-				HeldKeys[key] = true
+			local keyCode = input.KeyCode
+			if keyCode and typeof(keyCode.Name) == "string" then
+				local key = string.upper(keyCode.Name)
+				if InputCodes[key] and not InputBlacklist[key] then
+					HeldKeys[key] = true
+				end
 			end
 		end
 	end)
 
 	UserInputService.InputEnded:Connect(function(input, gp)
 		if not gp and input.UserInputType == Enum.UserInputType.Keyboard then
-			local key = input.KeyCode.Name
-			if InputCodes[key] then
-				HeldKeys[key] = nil
+			local keyCode = input.KeyCode
+			if keyCode and typeof(keyCode.Name) == "string" then
+				local key = string.upper(keyCode.Name)
+				if InputCodes[key] then
+					HeldKeys[key] = nil
+				end
 			end
 		end
 	end)
