@@ -1405,9 +1405,9 @@ do
 					    PlayAnimation(Frame.Pose, 0.1, Humanoid)
 					    Pose = Frame.Pose
 					end
-					if Frame.Inputs then
+					if Frame.Inputs and not States.IsMobile then
 						AHKRequestInput(Frame.Inputs)
-					else
+					elseif not States.IsMobile then
 						AHKRequestInput({})
 					end
 				end
@@ -1437,7 +1437,9 @@ do
 					table.insert(Inputs, key)
 				end
 
-				AHKRequestInput(Inputs)
+				if not IsMobile then
+					AHKRequestInput(Inputs)
+				end
 
 				table.insert(Frames, {
 					Frame = Index,
@@ -1513,7 +1515,7 @@ end
 	Originally inspired by ReplayAbility (a few code pasted),
 
 	AHK Input Playback Support:
-	
+
 	Download AHK to run Input AHK here:
 	https://www.autohotkey.com/download/ahk-v2.exe
 
