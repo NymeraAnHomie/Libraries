@@ -354,7 +354,7 @@ do
 						Pose = frameData.Pose,
 						State = frameData.State,
 						Emote = frameData.Emote,
-						Inputs = frameData.Inputs
+						Inputs = frameData.Inputs or {}
 		            })
 		        end
 		        
@@ -1412,10 +1412,9 @@ do
 					    PlayAnimation(Frame.Pose, 0.1, Humanoid)
 					    Pose = Frame.Pose
 					end
-					if Frame.Inputs and not States.IsMobile then
-						AHKRequestInput(Frame.Inputs)
-					elseif not States.IsMobile then
-						AHKRequestInput({})
+					if not States.IsMobile then
+						local keys = Frame.Inputs or {}
+						AHKRequestInput(keys)
 					end
 				end
 				Index = Index + 1
