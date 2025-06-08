@@ -116,7 +116,7 @@ local States = {} -- Values for Tasability Writing
 local Tasability = {}
 local Animation = {}
 local Frames = {}
-local Pressed = {}
+local AHKFrameInputs = {}
 
 -- Flags Variables
 local FrameSkipperAmount = 1
@@ -352,7 +352,8 @@ do
 						Shiftlock = frameData.Shiftlock,
 						Pose = frameData.Pose,
 						State = frameData.State,
-						Emote = frameData.Emote
+						Emote = frameData.Emote,
+						Inputs = frameData.Inputs
 		            })
 		        end
 		        
@@ -402,7 +403,8 @@ do
 					Zoom = frame.Zoom,
 		            Pose = frame.Pose,
 		            State = frame.State,
-		            Emote = frame.Emote
+		            Emote = frame.Emote,
+					Inputs = frame.Inputs
 		        })
 		    end
 		
@@ -1294,7 +1296,27 @@ do
 	        States.LoopingBackward = false
 	    end
 	end)
+
+	-- AHK Frames
+	UserInputService.InputBegan:Connect(function(input, gp)
+		if not gp and input.UserInputType == Enum.UserInputType.Keyboard then
+			local key = input.KeyCode.Name
+			if InputCodes[key] and not InputBlacklist[key] then
+				HeldKeys[key] = true
+			end
+		end
+	end)
+
+	UserInputService.InputEnded:Connect(function(input, gp)
+		if not gp and input.UserInputType == Enum.UserInputType.Keyboard then
+			local key = input.KeyCode.Name
+			if InputCodes[key] then
+				HeldKeys[key] = nil
+			end
+		end
+	end)
 	
+	-- General
 	task.spawn(function() -- Frame Handling
 		while true do
 			if States.Writing and States.Frozen then
@@ -1383,6 +1405,11 @@ do
 					    PlayAnimation(Frame.Pose, 0.1, Humanoid)
 					    Pose = Frame.Pose
 					end
+					if Frame.Inputs then
+						AHKRequestInput(Frame.Inputs)
+					else
+						AHKRequestInput({})
+					end
 				end
 				Index = Index + 1
 				if Index > #Frames and not States.Finished then
@@ -1405,7 +1432,14 @@ do
 	task.spawn(function() -- Writing
 	    while true do
 	        if States.Writing and not States.Reading and not States.Frozen then
-	            table.insert(Frames, {
+	            local Inputs = {}
+				for key in pairs(HeldKeys) do
+					table.insert(Inputs, key)
+				end
+
+				AHKRequestInput(Inputs)
+
+				table.insert(Frames, {
 					Frame = Index,
 					CFrame = HumanoidRootPart.CFrame,
 					Camera = Camera.CFrame,
@@ -1413,11 +1447,12 @@ do
 					AssemblyLinearVelocity = HumanoidRootPart.AssemblyLinearVelocity,
 					AssemblyAngularVelocity = HumanoidRootPart.AssemblyAngularVelocity,
 					MousePosition = UserInputService:GetMouseLocation(),
-                    Zoom = GetZoom(),
+					Zoom = GetZoom(),
 					Shiftlock = GetShiftlock(),
 					Pose = Pose,
 					State = Humanoid:GetState().Name,
-					Emote = LastEmote or nil
+					Emote = LastEmote or nil,
+					Inputs = Inputs
 				})
 				LastEmote = nil
 	            Index = Index + 1
@@ -1472,16 +1507,34 @@ end
 -- That was painful I'll be damn ain't it?
 
 --[[
-	Source or Owner by nymera_src
-	Some part are taken by replay ability cuz yk im not that talented (only like 2 part lol)
-	im not gonna make ahk also i gonna update this alot to perfect it 
-	zoomcontroller isn't universal so an game might break the entire script
+	Tasability V1.3 - Orion Edition
+	Created by: nymera_src
+
+	Originally inspired by ReplayAbility (a few code pasted),
+
+	AHK Input Playback Support:
 	
-	Tasability V1.3
-	[+] Bypassed Some Anticheats
-	[+] Added Animation Functions
-	[+] Added QOL Features (Settings, Keybinds)
-	[+] Added Mobile Support
-	[+] Fixed ZoomController (I Hope)
-	[+] Fein
+	Download AHK to run Input AHK here:
+	https://www.autohotkey.com/download/ahk-v2.exe
+
+	Download the Input AHK tool here:
+	https://github.com/NymeraAnHomie/Libraries/blob/main/Tasability/AHKFrameInputs.ahk
+
+	Notes:
+	- ZoomController support varies by game (some games may override or block it).
+	- AHK is used for live key simulation and is fully integrated into frame playback.
+	- Will continue to receive updates to polish features and support more games.
+
+	Features:
+	[+] Anticheat bypass support (several common scripts neutralized)
+	[+] Custom animation + emote replay system (trust me on this)
+	[+] Zoom and shiftlock support per frame
+	[+] Full input recording/playback via AHK and request.txt
+	[+] Debugging UI with frame/pose/state tracking
+	[+] Mobile Control support and frame stepping
+	[+] Auto-backups for TAS files (for ppl to slow lol)
+	[+] Fast-forward/rewind/looping controls
+	[+] Cursor tracking synced to tas file (very incosistent but stfu)
+
+	Fein.
 ]]
