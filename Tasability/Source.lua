@@ -1308,14 +1308,6 @@ do
 			if InputCodes["MB3"] then
 				HeldKeys["MB3"] = true
 			end
-		elseif input.UserInputType == Enum.UserInputType.MouseButton4 then
-			if InputCodes["MB4"] then
-				HeldKeys["MB4"] = true
-			end
-		elseif input.UserInputType == Enum.UserInputType.MouseButton5 then
-			if InputCodes["MB5"] then
-				HeldKeys["MB5"] = true
-			end
 		elseif input.UserInputType == Enum.UserInputType.MouseWheel then
 			if input.Position.Z > 0 and InputCodes["ScrollUp"] then
 				HeldKeys["ScrollUp"] = true
