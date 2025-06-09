@@ -73,37 +73,25 @@ local Humanoid = Character.Humanoid
 local Camera = Workspace.CurrentCamera
 local GuiInset = GuiService:GetGuiInset()
 
-local InputCodes = { -- https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
-	["A"] = 0x41;
-	["B"] = 0x42;
-	["C"] = 0x43;
-	["D"] = 0x44;
-	["E"] = 0x45;
-	["F"] = 0x46;
-	["G"] = 0x47;
-	["H"] = 0x48;
-	["I"] = 0x49;
-	["J"] = 0x4A;
-	["K"] = 0x4B;
-	["L"] = 0x4C;
-	["M"] = 0x4D;
-	["N"] = 0x4E;
-	["O"] = 0x4F;
-	["P"] = 0x50;
-	["Q"] = 0x51;
-	["R"] = 0x52;
-	["S"] = 0x53;
-	["T"] = 0x54;
-	["U"] = 0x55;
-	["V"] = 0x56;
-	["W"] = 0x57;
-	["X"] = 0x58;
-	["Y"] = 0x59;
-	["Z"] = 0x5A;
-	["Space"] = 0x20;
-	["LeftShift"] = 0x10;
-	["RightShift"] = 0x10;
+local InputCodes = {
+	A = true, B = true, C = true, D = true, E = true, F = true, G = true,
+	H = true, I = true, J = true, K = true, L = true, M = true, N = true,
+	O = true, P = true, Q = true, R = true, S = true, T = true, U = true,
+	V = true, W = true, X = true, Y = true, Z = true,
+
+	Space = true,
+	LeftShift = true,
+	RightShift = true,
+
+	MB1 = true,
+	MB2 = true,
+	MB3 = true,
+	MB4 = true,
+	MB5 = true,
+	ScrollUp = true,
+	ScrollDown = true,
 }
+
 local HeldKeys = {}
 
 -- Others
@@ -1298,28 +1286,64 @@ do
 	    end
 	end)
 
-	-- AHK Frames
+	-- AHK Frames (Input Tracker)
 	UserInputService.InputBegan:Connect(function(input, gp)
-		if not gp and input.UserInputType == Enum.UserInputType.Keyboard then
-			local keyCode = input.KeyCode
-			if keyCode and typeof(keyCode.Name) == "string" then
-				local key = string.upper(keyCode.Name)
-				if InputCodes[key] and not InputBlacklist[key] then
-					HeldKeys[key] = true
-				end
+		if gp then return end
+	
+		if input.UserInputType == Enum.UserInputType.Keyboard then
+			local key = string.upper(input.KeyCode.Name)
+			if InputCodes[key] and not InputBlacklist[key] then
+				HeldKeys[key] = true
+			end
+	
+		elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
+			if InputCodes["MB1"] then
+				HeldKeys["MB1"] = true
+			end
+		elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
+			if InputCodes["MB2"] then
+				HeldKeys["MB2"] = true
+			end
+		elseif input.UserInputType == Enum.UserInputType.MouseButton3 then
+			if InputCodes["MB3"] then
+				HeldKeys["MB3"] = true
+			end
+		elseif input.UserInputType == Enum.UserInputType.MouseButton4 then
+			if InputCodes["MB4"] then
+				HeldKeys["MB4"] = true
+			end
+		elseif input.UserInputType == Enum.UserInputType.MouseButton5 then
+			if InputCodes["MB5"] then
+				HeldKeys["MB5"] = true
+			end
+		elseif input.UserInputType == Enum.UserInputType.MouseWheel then
+			if input.Position.Z > 0 and InputCodes["ScrollUp"] then
+				HeldKeys["ScrollUp"] = true
+			elseif input.Position.Z < 0 and InputCodes["ScrollDown"] then
+				HeldKeys["ScrollDown"] = true
 			end
 		end
 	end)
-
+	
 	UserInputService.InputEnded:Connect(function(input, gp)
-		if not gp and input.UserInputType == Enum.UserInputType.Keyboard then
-			local keyCode = input.KeyCode
-			if keyCode and typeof(keyCode.Name) == "string" then
-				local key = string.upper(keyCode.Name)
-				if InputCodes[key] then
-					HeldKeys[key] = nil
-				end
+		if gp then return end
+	
+		if input.UserInputType == Enum.UserInputType.Keyboard then
+			local key = string.upper(input.KeyCode.Name)
+			if InputCodes[key] then
+				HeldKeys[key] = nil
 			end
+	
+		elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
+			HeldKeys["MB1"] = nil
+		elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
+			HeldKeys["MB2"] = nil
+		elseif input.UserInputType == Enum.UserInputType.MouseButton3 then
+			HeldKeys["MB3"] = nil
+		elseif input.UserInputType == Enum.UserInputType.MouseButton4 then
+			HeldKeys["MB4"] = nil
+		elseif input.UserInputType == Enum.UserInputType.MouseButton5 then
+			HeldKeys["MB5"] = nil
 		end
 	end)
 	
@@ -1464,6 +1488,8 @@ do
 				})
 				LastEmote = nil
 	            Index = Index + 1
+				HeldKeys["ScrollUp"] = nil
+				HeldKeys["ScrollDown"] = nil
 	        end
 	        RunService.PreSimulation:Wait()
 	    end
