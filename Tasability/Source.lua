@@ -1332,10 +1332,6 @@ do
 			HeldKeys["MB2"] = nil
 		elseif input.UserInputType == Enum.UserInputType.MouseButton3 then
 			HeldKeys["MB3"] = nil
-		elseif input.UserInputType == Enum.UserInputType.MouseButton4 then
-			HeldKeys["MB4"] = nil
-		elseif input.UserInputType == Enum.UserInputType.MouseButton5 then
-			HeldKeys["MB5"] = nil
 		end
 	end)
 	
