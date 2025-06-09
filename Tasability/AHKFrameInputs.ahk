@@ -88,14 +88,16 @@ MapKey(k) {
 		return "RButton"
 	if (k = "MB3")
 		return "MButton"
-	if (k = "MB4")
-		return "XButton1"
-	if (k = "MB5")
-		return "XButton2"
 	if (k = "ScrollUp")
 		return "WheelUp"
 	if (k = "ScrollDown")
 		return "WheelDown"
+	if (k = "Space")
+		return "Space"
+	if (k = "LeftShift")
+		return "LShift"
+	if (k = "RightShift")
+		return "RShift"
 	StringUpper, k, k
 	return k
 }
