@@ -193,8 +193,8 @@ Animation.Disabled = false
 if not isfolder("Tasability") then makefolder("Tasability") end
 if not isfolder("Tasability/PC") then makefolder("Tasability/PC") end
 if not isfolder("Tasability/PC/Files") then makefolder("Tasability/PC/Files") end
-if not isfolder("Tasability/PC/AHK") then makefolder("Tasability/PC/AHK") end
-if not isfile("Tasability/PC/AHK/request.txt") then writefile("Tasability/PC/AHK/request.txt", "") end
+if not isfolder("Tasability/PC/Connections") then makefolder("Tasability/PC/Connections") end
+if not isfile("Tasability/PC/Connections/request.txt") then writefile("Tasability/PC/Connections/request.txt", "") end
 
 local function GetFiles()
     local files = listfiles("Tasability/PC/Files")
