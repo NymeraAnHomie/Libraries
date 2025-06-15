@@ -83,19 +83,60 @@ local InputCodes = {
 	["0"] = true, ["1"] = true, ["2"] = true, ["3"] = true, ["4"] = true,
 	["5"] = true, ["6"] = true, ["7"] = true, ["8"] = true, ["9"] = true,
 
+	F1 = true, F2 = true, F3 = true, F4 = true, F5 = true, F6 = true,
+	F7 = true, F8 = true, F9 = true, F10 = true, F11 = true, F12 = true,
+
+	Up = true,
+	Down = true,
+	Left = true,
+	Right = true,
+
 	Space = true,
 	Tab = true,
 	Enter = true,
 	Backspace = true,
+	Delete = true,
+	Insert = true,
+	Home = true,
+	End = true,
+	PageUp = true,
+	PageDown = true,
+
 	LeftShift = true,
 	RightShift = true,
+	LeftCtrl = true,
+	RightCtrl = true,
+	LeftAlt = true,
+	RightAlt = true,
 
-	MB1 = true, -- MouseButton1 = Left Click
-	MB2 = true, -- MouseButton2 = Right Click
-	MB3 = true, -- MouseButton3 = Middle Click
+	MB1 = true,
+	MB2 = true,
+	MB3 = true,
 
 	ScrollUp = true,
 	ScrollDown = true,
+
+	Minus = true,
+	Plus = true,
+	Comma = true,
+	Period = true,
+	Slash = true,
+	Semicolon = true,
+	Quote = true,
+	LBracket = true,
+	RBracket = true,
+	Backslash = true,
+	Grave = true,
+
+	Num0 = true, Num1 = true, Num2 = true, Num3 = true,
+	Num4 = true, Num5 = true, Num6 = true, Num7 = true,
+	Num8 = true, Num9 = true,
+	NumAdd = true,
+	NumSub = true,
+	NumMul = true,
+	NumDiv = true,
+	NumEnter = true,
+	NumPeriod = true
 }
 
 local HeldKeys = {}
