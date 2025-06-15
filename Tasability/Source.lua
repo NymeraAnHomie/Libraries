@@ -1583,34 +1583,35 @@ end
 -- That was painful I'll be damn ain't it?
 
 --[[
-	Tasability V1.3 - Orion Edition
+	Tasability v1.3 - Orion Edition
 	Created by: nymera_src
 
-	Originally inspired by ReplayAbility (a few code pasted),
+	Based on concepts from ReplayAbility (some code snippets reused).
 
 	AHK Input Playback Support:
-
-	Download AHK to run Input AHK here:
+	Download AutoHotkey (v2) to run Input scripts:
 	https://www.autohotkey.com/download/ahk-v2.exe
 
-	Download the Input AHK tool here:
-	https://github.com/NymeraAnHomie/Libraries/blob/main/Tasability/AHKFrameInputs.ahk
+	Get the Input Presser Tool:
+	https://github.com/NymeraAnHomie/Libraries/blob/main/Tasability/TasabilityInputPasser.exe
 
-	Notes:
-	- ZoomController support varies by game (some games may override or block it).
-	- AHK is used for live key simulation and is fully integrated into frame playback.
-	- Will continue to receive updates to polish features and support more games.
+	Note: If you don’t trust the executable, feel free to decompile it yourself.
 
 	Features:
-	[+] Anticheat bypass support (several common scripts neutralized)
-	[+] Custom animation + emote replay system (trust me on this)
-	[+] Zoom and shiftlock support per frame
+	[+] Anticheat bypass compatibility (neutralizes common anti-script checks)
+	[+] Custom animation & emote replay system (seriously, it works)
+	[+] Zoom and shift-lock support per frame
 	[+] Full input recording/playback via AHK and request.txt
-	[+] Debugging UI with frame/pose/state tracking
-	[+] Mobile Control support and frame stepping
-	[+] Auto-backups for TAS files (for ppl to slow lol)
-	[+] Fast-forward/rewind/looping controls
-	[+] Cursor tracking synced to tas file (very incosistent but stfu)
+	[+] Debug UI with frame/pose/state visualization
+	[+] Mobile control support and frame stepping
+	[+] Auto-backups for TAS files (for the slowpokes)
+	[+] Fast-forward / rewind / looping controls
+	[+] Cursor tracking synced to TAS file (inconsistent, but don’t complain)
+
+	Notes:
+	- ZoomController support may vary between games (some override or block it).
+	- AHK handles live key simulation and is tightly integrated into frame playback.
+	- Continued updates planned for expanded game compatibility and polish.
 
 	Fein.
 ]]
