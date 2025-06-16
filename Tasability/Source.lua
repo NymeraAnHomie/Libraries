@@ -1013,7 +1013,7 @@ do
 		README:AddParagraph("ME!!!!!!!", "do not leave immediately if you're saving an tas bcuz saving delete the file and make it again cuz if u do ur cooked")
 		
 		local Main = Window:MakeTab({Name = "Main", Icon = "rbxassetid://10723374641"})
-		Main:AddSection({Name = "Tasability"})
+		Main:AddSection({Name = "General"})
 		local FileDropdown = Main:AddDropdown({Name = "Files",  Options = GetFiles(),  Callback = function(Value)
 		    States.Tas = Value
 		end})
@@ -1069,13 +1069,16 @@ do
 				Notify("TAS", "Skipped forward " .. FrameSkipperAmount .. " frames", 3)
 			end
 		end})
-		
+
+		local Exploits = Window:MakeTab({Name = "Exploits", Icon = "rbxassetid://10734951173"})
+		Exploits:AddSection({Name = "General"})
+		Exploits:AddToggle({Name = "God Mode", Save = true, Flag = "God Mode"})
+
 		local Settings = Window:MakeTab({Name = "Settings", Icon = "rbxassetid://10734950309"})
-		Settings:AddSection({Name = "Configuration"})
+		Settings:AddSection({Name = "General"})
 		Settings:AddToggle({Name = "Disable Tasability Notification", Save = true, Flag = "Disable Tasability Notifications"})
 		Settings:AddToggle({Name = "Disable Finish Notification", Save = true, Flag = "Disable Finish Notifications"})
 		Settings:AddToggle({Name = "Disable Frozen Mode Lock Camera", Save = true, Flag = "Disable Frozen Mode Lock Camera"})
-		Settings:AddToggle({Name = "God Mode", Save = true, Flag = "God Mode"})
 		if IsMobile then
 			Settings:AddButton({Name = "Wipe All Frame (Mobile)", Callback = WipeTasData})
 		end
@@ -1121,7 +1124,7 @@ do
 		end)
 	end
 	
-	-- Settings Hooks
+	-- Exploits Hooks
 	do
 		pcall(function()
 			local oldNamecall
