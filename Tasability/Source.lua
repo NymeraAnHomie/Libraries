@@ -1388,7 +1388,7 @@ do
 	-- General
 	task.spawn(function() -- Extras
 		while true do
-			SetShiftLock(not GetShiftlock()) -- stupid bug fix that doesn't even make sense???????? 
+			SetShiftLock(GetShiftlock()) -- stupid bug fix that doesn't even make sense???????? 
 			RunService.RenderStepped:Wait()
 		end
 	end)
