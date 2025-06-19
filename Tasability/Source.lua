@@ -225,6 +225,59 @@ function Notify(Name, Content, Time)
 	end
 end
 
+-- Signal manager
+do
+	local Signal = {}
+	Signal._callbacks = {}
+	Signal._signals = {}
+
+	function Signal:Add(name, callback)
+		if type(name) == "string" and type(callback) == "function" then
+			self._callbacks[name] = callback
+		end
+	end
+
+	function Signal:Run(name, ...)
+		local cb = self._callbacks[name]
+		if cb then
+			return cb(...)
+		end
+	end
+
+	function Signal:Remove(name)
+		self._callbacks[name] = nil
+	end
+
+	function Signal:Wrap(name)
+		return function(...)
+			return Signal:Run(name, ...)
+		end
+	end
+
+	function Signal:New(name)
+		local sig = self._signals[name]
+		if not sig then
+			local bindable = Instance.new("BindableEvent")
+			sig = {
+				Event = bindable.Event,
+				Fire = function(_, ...)
+					bindable:Fire(...)
+				end,
+				Connect = function(_, fn)
+					return bindable.Event:Connect(fn)
+				end,
+				Destroy = function()
+					bindable:Destroy()
+				end
+			}
+			self._signals[name] = sig
+		end
+		return sig
+	end
+
+	getgenv().Signal = Signal
+end
+
 -- Functions
 do
     -- GetGC Functions
@@ -1388,7 +1441,9 @@ do
 	-- General
 	task.spawn(function() -- Extras
 		while true do
-			SetShiftLock(GetShiftlock()) -- stupid bug fix that doesn't even make sense???????? 
+			if not States.Reading then
+				SetShiftLock(GetShiftlock()) -- stupid bug fix that doesn't even make sense???????? 
+			end
 			RunService.RenderStepped:Wait()
 		end
 	end)
