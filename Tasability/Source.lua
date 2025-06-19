@@ -1,4 +1,5 @@
 local ReadInputs = true
+local ReadCursor = true
 local Controls = {
     Frozen = "E",
     Wipe = "Delete",
@@ -56,7 +57,7 @@ local Cursors = {
 local Version = "V1.3"
 local Title = "Tasability - Orion Edition - " .. tostring(Version)
 local TasFilePath = "Tasability/PC/Files/"
-local AHKPath = "Tasability/PC/Connections/request.txt"
+local ConnectionsRequestInputPath = "Tasability/PC/Connections/request.txt"
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -153,7 +154,7 @@ local States = {} -- Values for Tasability Writing
 local Tasability = {}
 local Animation = {}
 local Frames = {}
-local AHKFrameInputs = {}
+local ConnectionFrameInputs = {}
 
 -- Flags Variables
 local FrameSkipperAmount = 1
@@ -996,7 +997,7 @@ do
 	    end
 	end
 	
-	function SetCursor(CursorName, StayinMiddle)
+	function SetCursor(CursorName, StayinMiddle, Visible)
 		local CursorData = Cursors[CursorName]
 		CursorIcon = CursorData.Icon
 		CursorSize = CursorData.Size
@@ -1010,7 +1011,8 @@ do
 		Cursor.BackgroundTransparency = 1
 		Cursor.BorderSizePixel = 0
 		Cursor.ZIndex = math.huge
-		Cursor.Visible = true
+		Cursor.Visible = Visible
+		UserInputService.MouseIconEnabled = not Cursor.Visible
 		Resolution = CursorHolder.AbsoluteSize
 
 		if StayinMiddle then
@@ -1053,9 +1055,10 @@ do
 		end
 	end
 	
-	function AHKRequestInput(inputTable)
-		local content = table.concat(inputTable, ",")
-		writefile("Tasability/PC/AHK/request.txt", content)
+	function ConnectionRequestInput(x)
+		if ReadInputs then
+			writefile(ConnectionsRequestInputPath, table.concat(x, ","))
+		end
 	end
 	
 	-- Interface
@@ -1316,8 +1319,7 @@ do
 	
 	-- Setup
 	do
-		SetCursor("ArrowFarCursor", false)
-		UserInputService.MouseIconEnabled = false
+		SetCursor("ArrowFarCursor", false, ReadCursor)
 	end
 	
 	-- Connections
@@ -1389,7 +1391,7 @@ do
 	    end
 	end)
 
-	-- AHK Frames (Input Tracker)
+	-- Connection Frames (Input Tracker)
 	UserInputService.InputBegan:Connect(function(input, gp)
 		if gp then return end
 	
@@ -1538,7 +1540,7 @@ do
 					end
 					if not States.IsMobile then
 						local keys = Frame.Inputs or {}
-						AHKRequestInput(keys)
+						ConnectionRequestInput(keys)
 					end
 				end
 				Index = Index + 1
@@ -1568,7 +1570,7 @@ do
 				end
 
 				if not IsMobile then
-					AHKRequestInput(Inputs)
+					ConnectionRequestInput(Inputs)
 				end
 
 				table.insert(Frames, {
@@ -1653,10 +1655,6 @@ end
 
 	Based on concepts from ReplayAbility (some code snippets reused).
 
-	AHK Input Playback Support:
-	Download AutoHotkey (v2) to run Input scripts:
-	https://www.autohotkey.com/download/ahk-v2.exe
-
 	Get the Input Presser Tool:
 	https://github.com/NymeraAnHomie/Libraries/blob/main/Tasability/TasabilityInputPasser.exe
 
@@ -1666,7 +1664,7 @@ end
 	[+] Anticheat bypass compatibility (neutralizes common anti-script checks)
 	[+] Custom animation & emote replay system (seriously, it works)
 	[+] Zoom and shift-lock support per frame
-	[+] Full input recording/playback via AHK and request.txt
+	[+] Full input recording/playback via Connection and request.txt
 	[+] Debug UI with frame/pose/state visualization
 	[+] Mobile control support and frame stepping
 	[+] Auto-backups for TAS files (for the slowpokes)
@@ -1675,7 +1673,7 @@ end
 
 	Notes:
 	- ZoomController support may vary between games (some override or block it).
-	- AHK handles live key simulation and is tightly integrated into frame playback.
+	- Connection handles live key simulation and is tightly integrated into frame playback.
 	- Continued updates planned for expanded game compatibility and polish.
 
 	Fein.
