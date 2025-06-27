@@ -146,7 +146,8 @@ local HeldKeys = {}
 local FrameIndexLabel
 local PoseLabel
 local CurrentAnimLabel
-local HumanoidStateLabel 
+local HumanoidStateLabel
+local ZoomLevelLabel
 local FrameInputsLabel
 
 -- Local Tables
@@ -565,7 +566,7 @@ do
 	
 	local LastTick = tick()
 	
-	-- Animation Functions
+	-- Animation Functions. Was originally made by roblox it self but was modified by me
 	do
 		local AnimNames = { 
 			Idle = 	{ { Id = "http://www.roblox.com/asset/?id=180435571", Weight = 8 }, { Id = "http://www.roblox.com/asset/?id=180435792", Weight = 1 } },
@@ -628,7 +629,7 @@ do
 			end
 			
 			function SetAnimationSpeed(Number)
-				if Number ~= CurrentAnimSpeed then
+				if CurrentAnimTrack and Number ~= CurrentAnimSpeed then
 					CurrentAnimSpeed = Number
 					CurrentAnimTrack:AdjustSpeed(CurrentAnimSpeed)
 				end
@@ -754,57 +755,106 @@ do
 			
 				EmotePlaying = nil
 			end
+			
+			function DetectPoseFromState(state)
+				if state == Enum.HumanoidStateType.Freefall then
+					return "FreeFall"
+				elseif state == Enum.HumanoidStateType.Jumping then
+					return "Jumping"
+				elseif state == Enum.HumanoidStateType.Running then
+					return "Running"
+				elseif state == Enum.HumanoidStateType.Swimming then
+					return "Swimming"
+				elseif state == Enum.HumanoidStateType.Climbing then
+					return "Climbing"
+				elseif state == Enum.HumanoidStateType.Seated then
+					return "Seated"
+				elseif state == Enum.HumanoidStateType.PlatformStanding then
+					return "PlatformStanding"
+				elseif state == Enum.HumanoidStateType.Dead then
+					return "Dead"
+				else
+					return "Standing"  
+				end
+			end
 
-			function Move(Time)
+			function Move(Time) -- i dont fw ts
 				if Animation.Disabled then return end
+			
+				local delta = Time - LastTick
+				LastTick = Time
+			
+				if JumpAnimTime > 0 then
+					JumpAnimTime -= delta
+				end
+			
 				if Pose == "Running" or Pose == "Standing" then
 					AnimateTool()
 				end
-
-				local DeltaTime = Time - LastTick
-				LastTick = Time
 			
-				local Amplitude = 1
-				local Frequency = 1
-				local SetAngles = false
-				local ClimbFudge = 0
+				local amplitude, frequency, set_angles = 1, 1, false
+				local climb_fudge = 0
 			
-				if JumpAnimTime > 0 then
-					JumpAnimTime -= DeltaTime
-				end
-			
-				-- Handle falling animation if not jumping anymore
 				if Pose == "FreeFall" and JumpAnimTime <= 0 then
-					PlayAnimation("Fall", FallTransitionTime, Humanoid)
+					if CurrentAnim ~= "Fall" then
+						PlayAnimation("Fall", FallTransitionTime, Humanoid)
+					end
+			
 				elseif Pose == "Seated" then
-					PlayAnimation("Sit", 0.5, Humanoid)
+					if CurrentAnim ~= "Sit" then
+						PlayAnimation("Sit", 0.5, Humanoid)
+					end
 					return
-				elseif Pose == "Running" then
-					PlayAnimation("Walk", 0.1, Humanoid)
-				elseif Pose == "Dead" or Pose == "GettingUp" or Pose == "FallingDown" or Pose == "Seated" or Pose == "PlatformStanding" then
-					Amplitude = 0.1
-					Frequency = 1
-					SetAngles = true
+			
+				elseif Pose == "Running" and JumpAnimTime <= 0 then
+					if CurrentAnim ~= "Walk" then
+						PlayAnimation("Walk", 0.1, Humanoid)
+					end
+				
+				elseif Pose == "Standing" and JumpAnimTime <= 0 then
+					if CurrentAnim ~= "Idle" then
+						PlayAnimation("Idle", 0.1, Humanoid)
+					end
+			
+				elseif Pose == "Climbing" then
+					if CurrentAnim ~= "Climb" then
+						PlayAnimation("Climb", 0.1, Humanoid)
+					end
+			
+				elseif Pose == "Swimming" then
+					if CurrentAnim ~= "Swim" then
+						PlayAnimation("Swim", 0.1, Humanoid)
+					end
+			
+				elseif Pose == "Jumping" then
+					if CurrentAnim ~= "Jump" then
+						PlayAnimation("Jump", 0.1, Humanoid)
+					end
+			
+				elseif Pose == "Dead" or Pose == "PlatformStanding" then
+					amplitude = 0.1
+					frequency = 1
+					set_angles = true
 				end
 			
-				if SetAngles then
-					local DesiredAngle = Amplitude * math.sin(Time * Frequency)
-					RightShoulder:SetDesiredAngle(DesiredAngle + ClimbFudge)
-					LeftShoulder:SetDesiredAngle(DesiredAngle - ClimbFudge)
-					RightHip:SetDesiredAngle(-DesiredAngle)
-					LeftHip:SetDesiredAngle(-DesiredAngle)
+				if set_angles then
+					local desired = amplitude * math.sin(Time * frequency)
+					RightShoulder:SetDesiredAngle(desired + climb_fudge)
+					LeftShoulder:SetDesiredAngle(desired - climb_fudge)
+					RightHip:SetDesiredAngle(-desired)
+					LeftHip:SetDesiredAngle(-desired)
 				end
 			
-				local Tool = Character:FindFirstChildOfClass("Tool")
-				if Tool and Tool:FindFirstChild("Handle") then
-					local AnimValue = Tool:FindFirstChild("toolanim")
-					if AnimValue and AnimValue:IsA("StringValue") then
-						ToolAnim = AnimValue.Value
-						AnimValue:Destroy()
+				local tool = Character:FindFirstChildOfClass("Tool")
+				if tool and tool:FindFirstChild("Handle") then
+					local anim = tool:FindFirstChild("toolanim")
+					if anim and anim:IsA("StringValue") then
+						ToolAnim = anim.Value
+						anim:Destroy()
 						ToolAnimTime = Time + 0.3
 					end
 			
-					if Time > ToolAnimTime then
+					if ToolAnimTime > 0 and Time > ToolAnimTime then
 						ToolAnimTime = 0
 						ToolAnim = "None"
 					end
@@ -817,8 +867,11 @@ do
 				end
 			end
 			
-			Humanoid.StateChanged:Connect(function(old, new)
-				local InterruptingStates = {
+			-- Connect Events
+			Humanoid.StateChanged:Connect(function(_, new)
+				if Animation.Disabled then return end
+			
+				local interrupt = {
 					[Enum.HumanoidStateType.Running] = true,
 					[Enum.HumanoidStateType.Jumping] = true,
 					[Enum.HumanoidStateType.Freefall] = true,
@@ -826,115 +879,70 @@ do
 					[Enum.HumanoidStateType.Swimming] = true
 				}
 			
-				if InterruptingStates[new] then
+				if interrupt[new] then
 					StopEmote()
+				end
+			
+				Pose = DetectPoseFromState(new)
+			end)
+			
+			Humanoid.Running:Connect(function(speed)
+				if Animation.Disabled then return end
+			
+				local state = Humanoid:GetState()
+				if state == Enum.HumanoidStateType.Running or state == Enum.HumanoidStateType.RunningNoPhysics then
+					if speed > 0.01 then
+						Pose = "Running"
+					else
+						Pose = "Standing"
+					end
 				end
 			end)
 			
-			-- Connect Events
-			Humanoid.Died:Connect(function(...)
-				if Animation.Disabled then
-					return
-				end
-				
-				if Humanoid:GetState() == Enum.HumanoidStateType.Dead then
-					Pose = "Dead"
-				end
-			end)
-
-			Humanoid.Running:Connect(function(Speed)
-				if Animation.Disabled then 
-					return 
-				end
-				
-				if Speed > 0.01 then
-					Pose = "Running"
-					PlayAnimation("Walk", 0.1, Humanoid)
-					if CurrentAnimInstance and CurrentAnimInstance.AnimationId == "https://www.roblox.com/asset/?id=180426351" then
-						SetAnimationSpeed(Speed / 14.5)
-					end
+			Humanoid.Swimming:Connect(function(speed)
+				if Animation.Disabled then return end
+				if speed > 0 then
+					Pose = "Swimming"
 				else
-					PlayAnimation("Idle", 0.1, Humanoid)
 					Pose = "Standing"
 				end
 			end)
-
-			Humanoid.Jumping:Connect(function(...)
-				if Animation.Disabled then 
-					return 
-				end
-				
-				PlayAnimation("Jump", 0.1, Humanoid)
+			
+			Humanoid.Climbing:Connect(function(speed)
+				if Animation.Disabled then return end
+				SetAnimationSpeed(speed / 12)
+				Pose = "Climbing"
+			end)
+			
+			Humanoid.Jumping:Connect(function()
+				if Animation.Disabled then return end
 				JumpAnimTime = JumpAnimDuration
 				Pose = "Jumping"
 			end)
-
-			Humanoid.Climbing:Connect(function(Speed)
-				if Animation.Disabled then 
-					return 
-				end
-				
-				PlayAnimation("Climb", 0.1, Humanoid)
-				SetAnimationSpeed(Speed / 12.0)
-				Pose = "Climbing"
-			end)
-
-			Humanoid.GettingUp:Connect(function(...)
-				if Animation.Disabled then 
-					return 
-				end
-				
-				Pose = "GettingUp"
-			end)
-
-			Humanoid.FreeFalling:Connect(function(...)
-				if Animation.Disabled then 
-					return 
-				end
-				
-				if JumpAnimTime <= 0 then
-					PlayAnimation("Fall", FallTransitionTime, Humanoid)
-				end
-				Pose = "FreeFall"
-			end)
-
-			Humanoid.FallingDown:Connect(function(...)
-				if Animation.Disabled then 
-					return 
-				end
-				
-				Pose = "FallingDown"
-			end)
-
-			Humanoid.Seated:Connect(function(...)
-				if Animation.Disabled then 
-					return 
-				end
-				
-				PlayAnimation("Sit", 0.1, Humanoid)
+			
+			Humanoid.Seated:Connect(function()
+				if Animation.Disabled then return end
 				Pose = "Seated"
 			end)
-
-			Humanoid.PlatformStanding:Connect(function(...)
-				if Animation.Disabled then 
-					return 
-				end
 			
+			Humanoid.PlatformStanding:Connect(function()
+				if Animation.Disabled then return end
 				Pose = "PlatformStanding"
 			end)
-
-			Humanoid.Swimming:Connect(function(Speed)
-				if Animation.Disabled then 
-					return 
-				end
-				
-				if Speed > 0 then
-					Pose = "Swimming"
-					PlayAnimation("Swim", 0.1, Humanoid)
-				else
-					Pose = "Standing"
-					PlayAnimation("Idle", 0.1, Humanoid)
-				end
+			
+			Humanoid.FallingDown:Connect(function()
+				if Animation.Disabled then return end
+				Pose = "FallingDown"
+			end)
+			
+			Humanoid.GettingUp:Connect(function()
+				if Animation.Disabled then return end
+				Pose = "GettingUp"
+			end)
+			
+			Humanoid.Died:Connect(function()
+				if Animation.Disabled then return end
+				Pose = "Dead"
 			end)
 			
 			LocalPlayer.Chatted:Connect(function(message)
@@ -966,15 +974,11 @@ do
 			PlayAnimation("Idle", 0.1, Humanoid)
 			Pose = "Standing"
 			
-			task.spawn(function()
-				while Character and Character.Parent do
-					local Now = tick()
-					local DeltaTime = Now - LastTick
-					LastTick = Now
-			
-					Move(Now, DeltaTime)
-			
-					task.wait(0.033) -- Approx 30 FPS
+			RunService:BindToRenderStep("AnimUpdate", Enum.RenderPriority.Character.Value + 1, function()
+				if Character and Character.Parent and not Animation.Disabled then
+					local now = tick()
+					LastTick = now
+					Move(now)
 				end
 			end)
 		end
@@ -1147,6 +1151,7 @@ do
 		PoseLabel = Debugging:AddLabel("Pose: ")
 		CurrentAnimLabel = Debugging:AddLabel("Current Animation: ")
 		HumanoidStateLabel = Debugging:AddLabel("Humanoid State: ")
+		ZoomLevelLabel = Debugging:AddLabel("Zoom Level: ")
 		FrameInputsLabel = Debugging:AddLabel("Frame Inputs: ")
 	end
 	
@@ -1629,7 +1634,7 @@ do
 			CurrentAnimLabel:Set("Current Animation: " .. tostring(CurrentAnim))
 			HumanoidState = Humanoid:GetState().Name
 			HumanoidStateLabel:Set("Humanoid State: " .. tostring(HumanoidState))
-
+			ZoomLevelLabel:Set("Zoom Level: " .. tostring(GetZoom()))
 			local outputkeys = {}
 			for key in pairs(HeldKeys) do
 				table.insert(outputkeys, key)
