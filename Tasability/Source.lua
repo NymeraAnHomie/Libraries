@@ -1438,6 +1438,7 @@ do
 	
 	-- Setup
 	do
+		MouseLockController.Init()
 		if ReadCursor then
 			SetCursor("ArrowFarCursor", false)
 			UserInputService.MouseIconEnabled = false
