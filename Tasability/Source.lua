@@ -366,32 +366,42 @@ do
     -- GetGC Functions
 	do
 		local ZoomControllers = {}
+		local MouseLockController = nil
 		local ZoomAPI = nil
 		local ZoomSpring = nil
 		local LastZoom = nil
 	
-		for _, Obj in ipairs(getgc(true)) do
-			if type(Obj) == "table" then
-				if type(rawget(Obj, "SetCameraToSubjectDistance")) == "function"
-					and type(rawget(Obj, "GetCameraToSubjectDistance")) == "function"
-					and rawget(Obj, "FIRST_PERSON_DISTANCE_THRESHOLD")
-					and rawget(Obj, "lastCameraTransform") then
-					table.insert(ZoomControllers, Obj)
+		for _, Object in ipairs(getgc(true)) do
+			if type(Object) == "table" then
+				if type(rawget(Object, "SetCameraToSubjectDistance")) == "function"
+					and type(rawget(Object, "GetCameraToSubjectDistance")) == "function"
+					and rawget(Object, "FIRST_PERSON_DISTANCE_THRESHOLD")
+					and rawget(Object, "lastCameraTransform") then
+					table.insert(ZoomControllers, Object)
 				end
-	
+		
 				if not ZoomAPI
-					and rawget(Obj, "SetZoomParameters")
-					and rawget(Obj, "GetZoomRadius") then
-					ZoomAPI = Obj
+					and rawget(Object, "SetZoomParameters")
+					and rawget(Object, "GetZoomRadius") then
+					ZoomAPI = Object
 				end
-	
+		
 				if not ZoomSpring
-					and typeof(rawget(Obj, "goal")) == "number"
-					and typeof(rawget(Obj, "x")) == "number"
-					and typeof(rawget(Obj, "v")) == "number" then
-					ZoomSpring = Obj
+					and typeof(rawget(Object, "goal")) == "number"
+					and typeof(rawget(Object, "x")) == "number"
+					and typeof(rawget(Object, "v")) == "number" then
+					ZoomSpring = Object
 				end
 			end
+		end
+		
+		for _, Object in ipairs(getgc(true)) do
+		    if typeof(Object) == "table"
+		    and rawget(Object, "DoMouseLockSwitch")
+		    and rawget(Object, "mouseLockToggledEvent") then
+		        MouseLockController = Object
+		        break
+		    end
 		end
 	
 		print(("# ZoomControllers found: %d"):format(#ZoomControllers))
@@ -400,6 +410,30 @@ do
 	
 		local function IsFiniteNumber(Value)
 			return typeof(Value) == "number" and Value == Value and Value < math.huge
+		end
+		
+		-- Staying Still, Eye Closed
+		-- Let the world just pass me byy
+		-- Pain pill, nice clothes
+		-- if i fall ill think ill flyyy
+		-- Touch me, midas
+		-- make me part of you're designnn
+		-- None to guide us
+		-- i feel fear for the very last time
+		
+		function MouseLockController.init()
+			MouseLockController:EnableMouseLock(true)
+			shared.IsLocked = MouseLockController:GetIsMouseLocked()
+		end
+		
+		function MouseLockController.SetLocked(State)
+		    local IsCurrentlyLocked = MouseLockController:GetIsMouseLocked()
+		    if IsCurrentlyLocked ~= State then
+		        MouseLockController:DoMouseLockSwitch("MouseLockSwitchAction", Enum.UserInputState.Begin, game)
+		        shared.IsLocked = State
+		        return true
+		    end
+		    return false
 		end
 	
 		function GetZoom()
@@ -1075,11 +1109,10 @@ do
 	end
 
 	function GetShiftlock()
-	    if UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
-	        return true
-	    else
-	        return false
-	    end
+		if MouseLockController and MouseLockController.GetIsMouseLocked then
+			return MouseLockController:GetIsMouseLocked()
+		end
+		return false
 	end
 	
 	function SetCursor(CursorName, StayinMiddle, Visible)
@@ -1600,6 +1633,8 @@ do
                     SetZoom(Frame.Zoom)
 					Humanoid:ChangeState(Enum.HumanoidStateType[Frame.State])
 					HumanoidState = tostring(Frame.State)
+					-- you maybe asking why 2 shiftlock forcer setshiftlock change the fake cursor icon while mouselock doe the real shiftlock
+					MouseLockController.SetLocked(Frame.Shiftlock)
 					SetShiftLock(Frame.Shiftlock)
 					if Frame.Emote ~= LastPlayedEmote then
 					    if LastPlayedEmote then
