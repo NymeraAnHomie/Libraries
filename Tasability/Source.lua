@@ -25,6 +25,67 @@ local InputBlacklist = {
 
 local Cursors = {
 	["ArrowFarCursor"] = { -- Default
+		Icon = "rbxasset://textures/Cursors/KeyboardMouse/ArrowFarCursor.png";
+		Size = UDim2.fromOffset(64,64);
+		Offset = Vector2.new(-32,4);
+	};
+	["MouseLockedCursor"] = { -- Shiftlock
+		Icon = "rbxasset://textures/MouseLockedCursor.png";
+		Size = UDim2.fromOffset(32,32);
+		Offset = Vector2.new(-16,20);
+	};
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- End of config
+
+local shared = getgenv()
+
+
+-- kms
+-- who tf use cloneref frfr
+
+local ReadInputs = true
+local ReadCursor = true
+local Controls = {
+    Frozen = "E",
+    Wipe = "Delete",
+    PauseReading = "K",
+    Spectate = "One",
+    Create = "Two",
+    Test = "Three",
+	AdvanceFrame = "G",
+    Backward = "N",
+    Forward = "B",
+    LoopBackward = "C",
+    LoopForward = "V"
+}
+
+local InputBlacklist = {
+	["E"] = true,
+	["K"] = true,
+	["G"] = true,
+	["N"] = true,
+	["C"] = true,
+    ["V"] = true
+}
+
+local Cursors = {
+	["ArrowFarCursor"] = { -- Default
 		Icon = "rbxasset://textures/Cursors/KeyboardMouse/ArrowFarCursor.png",
 		Size = UDim2.fromOffset(64,64),
 		Offset = Vector2.new(-32,4),
@@ -53,20 +114,29 @@ local Cursors = {
 
 -- End of config
 
+local shared = getgenv()
+
 -- Constants
-local Version = "V1.3"
+local Version = "V1.4"
 local Title = "Tasability - Orion Edition - " .. tostring(Version)
 local TasFilePath = "Tasability/PC/Files/"
 local ConnectionsRequestInputPath = "Tasability/PC/Connections/request.txt"
-local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
-local HttpService = game:GetService("HttpService")
-local UserInputService = game:GetService("UserInputService")
-local ContextActionService = game:GetService("ContextActionService")
-local GuiService = game:GetService("GuiService")
-local VirtualInputManager = game:GetService("VirtualInputManager")
+local Services = {
+    "Players",
+    "Workspace",
+    "ReplicatedStorage",
+    "RunService",
+    "HttpService",
+    "UserInputService",
+    "ContextActionService",
+    "GuiService",
+    "VirtualInputManager"
+}
+
+for _, v in ipairs(Services) do
+    shared[v] = game:GetService(v)
+end
+
 local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character
 local HumanoidRootPart = Character.HumanoidRootPart
@@ -150,23 +220,35 @@ local HumanoidStateLabel
 local ZoomLevelLabel
 local FrameInputsLabel
 
--- Local Tables
-local States = {} -- Values for Tasability Writing
-local Tasability = {}
-local Animation = {}
-local Frames = {}
-local ConnectionFrameInputs = {}
+-- Local Table
+shared.Tasability = shared.Tasability or {}
+shared.States = shared.States or {}
+shared.Animation = shared.Animation or {}
+shared.Frames = shared.Frames or {}
+shared.ConnectionFrameInputs = shared.ConnectionFrameInputs or {}
+shared.Index = 1
+shared.Pose = ""
+shared.HumanoidState = ""
 
 -- Flags Variables
 local FrameSkipperAmount = 1
 
 -- Variables
-local Index = 1
-local CursorHolder = Instance.new("ScreenGui", cloneref(game:GetService("CoreGui")))
+local Tasability = shared.Tasability
+local States = shared.States
+local Animation = shared.Animation
+local Frames = shared.Frames
+
+local Index = shared.Index
+local Pose = shared.Pose
+local HumanoidState = shared.HumanoidState
+
+local CursorHolder = Instance.new("ScreenGui", game:GetService("CoreGui"))
 local Cursor = Instance.new("ImageLabel", CursorHolder)
 local CursorIcon = nil
 local CursorSize = nil
 local CursorOffset = nil -- UserInputService:GetMouseLocation()
+
 local PlaybackStart = 0
 local Resolution = nil
 local EmotePlaying = nil
@@ -174,11 +256,10 @@ local LastEmote = nil
 local LastFrameEmote = nil
 local LastPlayedEmote = nil
 local LastFramePose = nil
+
 local IsMobile = UserInputService.TouchEnabled
 local MouseLocation = UserInputService:GetMouseLocation()
 local ShiftLockEnabled = false
-local Pose = ""
-local HumanoidState = ""
 
 States.Writing = false
 States.Reading = false
@@ -277,7 +358,7 @@ do
 		return sig
 	end
 
-	getgenv().Signal = Signal
+	shared.Signal = Signal
 end
 
 -- Functions
@@ -1006,7 +1087,7 @@ do
 		CursorIcon = CursorData.Icon
 		CursorSize = CursorData.Size
 		CursorOffset = CursorData.Offset
-		
+	
 		CursorHolder.IgnoreGuiInset = true
 		CursorHolder.DisplayOrder = 99999
 		CursorHolder.ZIndexBehavior = Enum.ZIndexBehavior.Global
@@ -1014,11 +1095,11 @@ do
 		Cursor.Size = CursorSize
 		Cursor.BackgroundTransparency = 1
 		Cursor.BorderSizePixel = 0
-		Cursor.ZIndex = math.huge
-		Cursor.Visible = Visible
-		UserInputService.MouseIconEnabled = not Cursor.Visible
-		Resolution = CursorHolder.AbsoluteSize
-
+		Cursor.ZIndex = 9999
+		Cursor.Visible = true
+		Cursor.Position = UDim2.fromOffset(0, 0)
+		Resolution = Camera.ViewportSize
+	
 		if StayinMiddle then
 			Cursor.AnchorPoint = Vector2.new(0.5, 0.5)
 		else
@@ -1204,7 +1285,7 @@ do
 	do
 	if IsMobile then
 		function Tasability:CreateWindow()
-		    local Tas = Utility.CreateInstance("ScreenGui", cloneref(game:GetService("CoreGui")), {
+		    local Tas = Utility.CreateInstance("ScreenGui", game:GetService("CoreGui"), {
 		        ResetOnSpawn = false,
 		        IgnoreGuiInset = true,
 		        DisplayOrder = 9999
@@ -1324,7 +1405,10 @@ do
 	
 	-- Setup
 	do
-		SetCursor("ArrowFarCursor", false, ReadCursor)
+		if ReadCursor then
+			SetCursor("ArrowFarCursor", false)
+			UserInputService.MouseIconEnabled = false
+		end
 	end
 	
 	-- Connections
@@ -1468,37 +1552,36 @@ do
 		end
 	end)
 
-	task.spawn(function() -- Update cursor
+	task.spawn(function()
 		while true do
-			Cursor.Image = CursorIcon
-			Cursor.Size = CursorSize
-	
-			local CursorOffset = CursorOffset or Vector2.zero
-			local Resolution = Resolution or Vector2.new(1920, 1080)
-	
-			local PosX, PosY
-	
-			if States.Reading and Index <= #Frames then
-				local Frame = Frames[Index]
-				if Frame and Frame.MousePosition then
-					PosX = Frame.MousePosition.X + CursorOffset.X - GuiInset.X
-					PosY = Frame.MousePosition.Y + CursorOffset.Y - GuiInset.Y
-				end
-			else
-				local MousePos = UserInputService:GetMouseLocation()
-				if UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
+			if ReadCursor then
+				local MouseLocked = UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter
+				local CursorData = MouseLocked and Cursors["MouseLockedCursor"] or Cursors["ArrowFarCursor"]
+				local CursorIcon = CursorData.Icon
+				local CursorSize = CursorData.Size
+				local CursorOffset = CursorData.Offset or Vector2.zero
+		
+				local Resolution = Workspace.CurrentCamera.ViewportSize
+				local GuiInset = GuiService:GetGuiInset()
+				local PosX, PosY
+		
+				Cursor.Image = CursorIcon
+				Cursor.Size = CursorSize
+		
+				if MouseLocked then
 					PosX = (Resolution.X / 2) + CursorOffset.X - GuiInset.X
 					PosY = (Resolution.Y / 2) + CursorOffset.Y - GuiInset.Y
 				else
-					PosX = MousePos.X + CursorOffset.X - GuiInset.X
-					PosY = MousePos.Y + CursorOffset.Y - GuiInset.Y
+					local MousePos = UserInputService:GetMouseLocation()
+					PosX = MousePos.X + CursorOffset.X
+					PosY = MousePos.Y + CursorOffset.Y
+				end
+		
+				if PosX and PosY then
+					Cursor.Position = UDim2.fromOffset(PosX, PosY)
 				end
 			end
-	
-			if PosX and PosY then
-				Cursor.Position = UDim2.fromOffset(PosX, PosY)
-			end
-	
+			
 			RunService.RenderStepped:Wait()
 		end
 	end)
@@ -1634,7 +1717,7 @@ do
 			CurrentAnimLabel:Set("Current Animation: " .. tostring(CurrentAnim))
 			HumanoidState = Humanoid:GetState().Name
 			HumanoidStateLabel:Set("Humanoid State: " .. tostring(HumanoidState))
-			ZoomLevelLabel:Set("Zoom Level: " .. tostring(GetZoom()))
+			ZoomLevelLabel:Set("Zoom Level: " .. string.format("%.2f", GetZoom()))
 			local outputkeys = {}
 			for key in pairs(HeldKeys) do
 				table.insert(outputkeys, key)
@@ -1665,21 +1748,5 @@ end
 
 	Note: If you don’t trust the executable, feel free to decompile it yourself.
 
-	Features:
-	[+] Anticheat bypass compatibility (neutralizes common anti-script checks)
-	[+] Custom animation & emote replay system (seriously, it works)
-	[+] Zoom and shift-lock support per frame
-	[+] Full input recording/playback via Connection and request.txt
-	[+] Debug UI with frame/pose/state visualization
-	[+] Mobile control support and frame stepping
-	[+] Auto-backups for TAS files (for the slowpokes)
-	[+] Fast-forward / rewind / looping controls
-	[+] Cursor tracking synced to TAS file (inconsistent, but don’t complain)
-
-	Notes:
-	- ZoomController support may vary between games (some override or block it).
-	- Connection handles live key simulation and is tightly integrated into frame playback.
-	- Continued updates planned for expanded game compatibility and polish.
-
-	Fein.
+	Fein
 ]]
