@@ -363,14 +363,15 @@ end
 
 -- Functions
 do
+	local ZoomControllers = {}
+	local MouseLockController = {}
+	local MouseLockRaw = nil
+	local ZoomAPI = nil
+	local ZoomSpring = nil
+	local LastZoom = nil
+	
     -- GetGC Functions
 	do
-		local ZoomControllers = {}
-		local MouseLockRaw = nil
-		local ZoomAPI = nil
-		local ZoomSpring = nil
-		local LastZoom = nil
-	
 		for _, Object in ipairs(getgc(true)) do
 			if type(Object) == "table" then
 				if type(rawget(Object, "SetCameraToSubjectDistance")) == "function"
@@ -429,7 +430,6 @@ do
 			print("MouseLockController found")
 		end
 
-		local MouseLockController = {}
 		function MouseLockController.Init()
 			if not MouseLockRaw then return end
 			MouseLockRaw:EnableMouseLock(true)
