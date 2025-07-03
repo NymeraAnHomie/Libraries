@@ -366,7 +366,7 @@ do
     -- GetGC Functions
 	do
 		local ZoomControllers = {}
-		local MouseLockController = nil
+		local MouseLockRaw = nil
 		local ZoomAPI = nil
 		local ZoomSpring = nil
 		local LastZoom = nil
@@ -396,12 +396,14 @@ do
 		end
 		
 		for _, Object in ipairs(getgc(true)) do
-		    if typeof(Object) == "table"
-		    and rawget(Object, "DoMouseLockSwitch")
-		    and rawget(Object, "mouseLockToggledEvent") then
-		        MouseLockController = {Runtime = Object}
-		        break
-		    end
+			if typeof(Object) == "table"
+				and rawget(Object, "DoMouseLockSwitch")
+				and rawget(Object, "mouseLockToggledEvent")
+				and type(rawget(Object, "EnableMouseLock")) == "function"
+			then
+				MouseLockRaw = Object
+				break
+			end
 		end
 	
 		print(("# ZoomControllers found: %d"):format(#ZoomControllers))
@@ -420,20 +422,34 @@ do
 		-- make me part of you're designnn
 		-- None to guide us
 		-- i feel fear for the very last time
-		
+
+		if not MouseLockRaw then
+			warn("MouseLockController not found in memory")
+		else
+			print("MouseLockController found")
+		end
+
+		local MouseLockController = {}
 		function MouseLockController.Init()
-			MouseLockController.Runtime:EnableMouseLock(true)
-			shared.IsLocked = MouseLockController.Runtime:GetIsMouseLocked()
+			if not MouseLockRaw then return end
+			MouseLockRaw:EnableMouseLock(true)
+			shared.IsLocked = MouseLockRaw:GetIsMouseLocked()
 		end
 		
 		function MouseLockController.SetLocked(State)
-			local IsCurrentlyLocked = MouseLockController.Runtime:GetIsMouseLocked()
+			if not MouseLockRaw then return false end
+		
+			local IsCurrentlyLocked = MouseLockRaw:GetIsMouseLocked()
 			if IsCurrentlyLocked ~= State then
-				MouseLockController.Runtime:DoMouseLockSwitch("MouseLockSwitchAction", Enum.UserInputState.Begin, game)
+				MouseLockRaw:DoMouseLockSwitch("MouseLockSwitchAction", Enum.UserInputState.Begin, game)
 				shared.IsLocked = State
 				return true
 			end
 			return false
+		end
+		
+		function MouseLockController.GetLocked()
+			return MouseLockRaw and MouseLockRaw:GetIsMouseLocked() or false
 		end
 	
 		function GetZoom()
