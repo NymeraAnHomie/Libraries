@@ -399,7 +399,7 @@ do
 		    if typeof(Object) == "table"
 		    and rawget(Object, "DoMouseLockSwitch")
 		    and rawget(Object, "mouseLockToggledEvent") then
-		        MouseLockController = Object
+		        MouseLockController = {Runtime = Object}
 		        break
 		    end
 		end
@@ -421,19 +421,19 @@ do
 		-- None to guide us
 		-- i feel fear for the very last time
 		
-		function MouseLockController.init()
-			MouseLockController:EnableMouseLock(true)
-			shared.IsLocked = MouseLockController:GetIsMouseLocked()
+		function MouseLockController.Init()
+			MouseLockController.Runtime:EnableMouseLock(true)
+			shared.IsLocked = MouseLockController.Runtime:GetIsMouseLocked()
 		end
 		
 		function MouseLockController.SetLocked(State)
-		    local IsCurrentlyLocked = MouseLockController:GetIsMouseLocked()
-		    if IsCurrentlyLocked ~= State then
-		        MouseLockController:DoMouseLockSwitch("MouseLockSwitchAction", Enum.UserInputState.Begin, game)
-		        shared.IsLocked = State
-		        return true
-		    end
-		    return false
+			local IsCurrentlyLocked = MouseLockController.Runtime:GetIsMouseLocked()
+			if IsCurrentlyLocked ~= State then
+				MouseLockController.Runtime:DoMouseLockSwitch("MouseLockSwitchAction", Enum.UserInputState.Begin, game)
+				shared.IsLocked = State
+				return true
+			end
+			return false
 		end
 	
 		function GetZoom()
