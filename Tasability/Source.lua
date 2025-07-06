@@ -53,9 +53,6 @@ local Cursors = {
 
 -- End of config
 
-local shared = getgenv()
-
-
 -- kms
 -- who tf use cloneref frfr
 
@@ -221,6 +218,7 @@ local ConnectionFrameInputs = {}
 local Index = 1
 local Pose = ""
 local HumanoidState = ""
+local IsLocked = false
 
 -- Flags Variables
 local FrameSkipperAmount = 1
@@ -415,7 +413,7 @@ do
 		function MouseLockController.Init()
 			if not MouseLockRaw then return end
 			MouseLockRaw:EnableMouseLock(true)
-			shared.IsLocked = MouseLockRaw:GetIsMouseLocked()
+			IsLocked = MouseLockRaw:GetIsMouseLocked()
 		end
 		
 		function MouseLockController.SetLocked(State)
@@ -424,7 +422,7 @@ do
 			local IsCurrentlyLocked = MouseLockRaw:GetIsMouseLocked()
 			if IsCurrentlyLocked ~= State then
 				MouseLockRaw:DoMouseLockSwitch("MouseLockSwitchAction", Enum.UserInputState.Begin, game)
-				shared.IsLocked = State
+				IsLocked = State
 				return true
 			end
 			return false
