@@ -341,8 +341,6 @@ do
 		end
 		return sig
 	end
-
-	shared.Signal = Signal
 end
 
 -- Functions
