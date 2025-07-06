@@ -114,8 +114,6 @@ local Cursors = {
 
 -- End of config
 
-local shared = getgenv()
-
 -- Constants
 local Version = "V1.4"
 local Title = "Tasability - Orion Edition - " .. tostring(Version)
@@ -215,27 +213,19 @@ local ZoomLevelLabel
 local FrameInputsLabel
 
 -- Local Table
-shared.Tasability = shared.Tasability or {}
-shared.States = shared.States or {}
-shared.Animation = shared.Animation or {}
-shared.Frames = shared.Frames or {}
-shared.ConnectionFrameInputs = shared.ConnectionFrameInputs or {}
-shared.Index = 1
-shared.Pose = ""
-shared.HumanoidState = ""
+local Tasability = {}
+local States = {}
+local Animation = {}
+local Frames = {}
+local ConnectionFrameInputs = {}
+local Index = 1
+local Pose = ""
+local HumanoidState = ""
 
 -- Flags Variables
 local FrameSkipperAmount = 1
 
 -- Variables
-local Tasability = shared.Tasability
-local States = shared.States
-local Animation = shared.Animation
-local Frames = shared.Frames
-
-local Index = shared.Index
-local Pose = shared.Pose
-local HumanoidState = shared.HumanoidState
 
 local CursorHolder = Instance.new("ScreenGui", game:GetService("CoreGui"))
 local Cursor = Instance.new("ImageLabel", CursorHolder)
