@@ -121,21 +121,15 @@ local Version = "V1.4"
 local Title = "Tasability - Orion Edition - " .. tostring(Version)
 local TasFilePath = "Tasability/PC/Files/"
 local ConnectionsRequestInputPath = "Tasability/PC/Connections/request.txt"
-local Services = {
-    "Players",
-    "Workspace",
-    "ReplicatedStorage",
-    "RunService",
-    "HttpService",
-    "UserInputService",
-    "ContextActionService",
-    "GuiService",
-    "VirtualInputManager"
-}
-
-for _, v in ipairs(Services) do
-    shared[v] = game:GetService(v)
-end
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
+local ContextActionService = game:GetService("ContextActionService")
+local GuiService = game:GetService("GuiService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character
