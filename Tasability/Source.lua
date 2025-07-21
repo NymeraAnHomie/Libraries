@@ -287,10 +287,8 @@ function SetZoom(ZoomValue)
         if ok then Success = true end
     end
 end
-end
 
 -- Tasability Functions
-do
 local function SerializeCFrame(cf)
     return {cf:GetComponents()}
 end
@@ -420,11 +418,9 @@ function CreateTas(Name, Content)
         Notify("TAS Already Exists", Name .. ".json was not overwritten", 5)
     end
 end
-end
 
 -- Utility Functions
 local Utility = {}
-do
 function Utility.CreateInstance(ClassName, Parent, Properties)
     local instance = Instance.new(ClassName)
     if Parent then
@@ -436,7 +432,6 @@ function Utility.CreateInstance(ClassName, Parent, Properties)
         end
     end
     return instance
-end
 end
 
 -- Animations
@@ -468,7 +463,6 @@ local LeftHip = Torso:WaitForChild("Left Hip")
 local LastTick = tick()
 
 -- Animation Functions
-do
 local AnimNames = { 
     Idle = 	{ { Id = "http://www.roblox.com/asset/?id=180435571", Weight = 8 }, { Id = "http://www.roblox.com/asset/?id=180435792", Weight = 1 } },
     Walk = 	{ { Id = "http://www.roblox.com/asset/?id=180426354", Weight = 10 } }, 
