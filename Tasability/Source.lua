@@ -1,4 +1,5 @@
 local ReadInputs = true
+local ReadCursor = true
 local Controls = {
     Frozen = "E",
     Wipe = "Delete",
@@ -73,6 +74,8 @@ local Humanoid = Character.Humanoid
 local Camera = Workspace.CurrentCamera
 local GuiInset = GuiService:GetGuiInset()
 
+local run = task.spawn
+
 local InputCodes = {
 	A = true, B = true, C = true, D = true, E = true, F = true,
 	G = true, H = true, I = true, J = true, K = true, L = true,
@@ -106,13 +109,13 @@ local PoseLabel
 local CurrentAnimLabel
 local HumanoidStateLabel 
 local FrameInputsLabel
+local ZoomLevelLabel
 
 -- Local Tables
 local States = {} -- Values for Tasability Writing
 local Tasability = {}
 local Animation = {}
 local Frames = {}
-local ConnectionsFrameInputs = {}
 
 -- Flags Variables
 local FrameSkipperAmount = 1
@@ -432,6 +435,77 @@ function Utility.CreateInstance(ClassName, Parent, Properties)
         end
     end
     return instance
+end
+
+-- Camera/Input Functions
+function GetShiftlock()
+    if UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
+        return true
+    else
+        return false
+    end
+end
+
+function SetCursor(CursorName, StayinMiddle)
+    local CursorData = Cursors[CursorName]
+    CursorIcon = CursorData.Icon
+    CursorSize = CursorData.Size
+    CursorOffset = CursorData.Offset
+    
+    CursorHolder.IgnoreGuiInset = true
+    CursorHolder.DisplayOrder = 99999
+    CursorHolder.ZIndexBehavior = Enum.ZIndexBehavior.Global
+    Cursor.Image = CursorIcon
+    Cursor.Size = CursorSize
+    Cursor.BackgroundTransparency = 1
+    Cursor.BorderSizePixel = 0
+    Cursor.ZIndex = math.huge
+    Cursor.Visible = true
+    Resolution = CursorHolder.AbsoluteSize
+
+    if StayinMiddle then
+        Cursor.AnchorPoint = Vector2.new(0.5, 0.5)
+    else
+        Cursor.AnchorPoint = Vector2.new(0, 0)
+    end
+end
+
+function SetFrame(index, preserveFuture)
+    if not Frames[index] then return end
+
+    Index = index
+    local Frame = Frames[index]
+
+    HumanoidRootPart.CFrame = Frame.CFrame
+    HumanoidRootPart.Velocity = Frame.Velocity
+    HumanoidRootPart.AssemblyLinearVelocity = Frame.AssemblyLinearVelocity
+    HumanoidRootPart.AssemblyAngularVelocity = Frame.AssemblyAngularVelocity
+    Camera.CFrame = Frame.Camera
+    Humanoid:ChangeState(Enum.HumanoidStateType[Frame.State])
+    SetZoom(Frame.Zoom)
+    
+    if States.Writing and not preserveFuture then
+        for i = #Frames, index + 1, -1 do
+            table.remove(Frames, i)
+        end
+    end
+end
+
+function SetShiftLock(Bool)
+    if ShiftLockEnabled ~= Bool then
+        ShiftLockEnabled = Bool
+
+        if Bool then
+            SetCursor("MouseLockedCursor", true)
+        else
+            SetCursor("ArrowFarCursor", false)
+        end
+    end
+end
+
+function ConnectionsRequestInput(inputTable)
+    local content = table.concat(inputTable, ",")
+    writefile("Tasability/PC/Connections/request.txt", content)
 end
 
 -- Animations
@@ -862,7 +936,7 @@ do
     PlayAnimation("Idle", 0.1, Humanoid)
     Pose = "Standing"
     
-    task.spawn(function()
+    run(function()
         while Character and Character.Parent do
             local Now = tick()
             local DeltaTime = Now - LastTick
@@ -875,164 +949,7 @@ do
     end)
 end
 
--- Camera/Input Functions
-function GetShiftlock()
-    if UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
-        return true
-    else
-        return false
-    end
-end
-
-function SetCursor(CursorName, StayinMiddle)
-    local CursorData = Cursors[CursorName]
-    CursorIcon = CursorData.Icon
-    CursorSize = CursorData.Size
-    CursorOffset = CursorData.Offset
-    
-    CursorHolder.IgnoreGuiInset = true
-    CursorHolder.DisplayOrder = 99999
-    CursorHolder.ZIndexBehavior = Enum.ZIndexBehavior.Global
-    Cursor.Image = CursorIcon
-    Cursor.Size = CursorSize
-    Cursor.BackgroundTransparency = 1
-    Cursor.BorderSizePixel = 0
-    Cursor.ZIndex = math.huge
-    Cursor.Visible = true
-    Resolution = CursorHolder.AbsoluteSize
-
-    if StayinMiddle then
-        Cursor.AnchorPoint = Vector2.new(0.5, 0.5)
-    else
-        Cursor.AnchorPoint = Vector2.new(0, 0)
-    end
-end
-
-function SetFrame(index, preserveFuture)
-    if not Frames[index] then return end
-
-    Index = index
-    local Frame = Frames[index]
-
-    HumanoidRootPart.CFrame = Frame.CFrame
-    HumanoidRootPart.Velocity = Frame.Velocity
-    HumanoidRootPart.AssemblyLinearVelocity = Frame.AssemblyLinearVelocity
-    HumanoidRootPart.AssemblyAngularVelocity = Frame.AssemblyAngularVelocity
-    Camera.CFrame = Frame.Camera
-    Humanoid:ChangeState(Enum.HumanoidStateType[Frame.State])
-    SetZoom(Frame.Zoom)
-    
-    if States.Writing and not preserveFuture then
-        for i = #Frames, index + 1, -1 do
-            table.remove(Frames, i)
-        end
-    end
-end
-
-function SetShiftLock(Bool)
-    if ShiftLockEnabled ~= Bool then
-        ShiftLockEnabled = Bool
-
-        if Bool then
-            SetCursor("MouseLockedCursor", true)
-        else
-            SetCursor("ArrowFarCursor", false)
-        end
-    end
-end
-
-function ConnectionsRequestInput(inputTable)
-    local content = table.concat(inputTable, ",")
-    writefile("Tasability/PC/Connections/request.txt", content)
-end
-
--- Interface
-do
-    local README = Window:MakeTab({Name = "README", Icon = "rbxassetid://10734907168"})
-    README:AddParagraph("FPS Importance", "Use a specific FPS cap and do not change it until you're done making a TAS or are currently not working on a TAS. Changing it will lead to incorrect replay speeds (too fast or too slow).")
-    README:AddParagraph("Backup System", "Every time a TAS file is saved, a backup is automatically created if the file already exists. These backups are numbered (e.g., .bak1, .bak2, etc.) to ensure previous versions are preserved. This prevents accidental loss of data and lets you recover earlier versions of your TAS.")
-    README:AddParagraph("ME!!!!!!!", "do not leave immediately if you're saving an tas bcuz saving delete the file and make it again cuz if u do ur cooked")
-    
-    local Main = Window:MakeTab({Name = "Main", Icon = "rbxassetid://10723374641"})
-    Main:AddSection({Name = "Tasability"})
-    local FileDropdown = Main:AddDropdown({Name = "Files",  Options = GetFiles(),  Callback = function(Value)
-        States.Tas = Value
-    end})
-    Main:AddTextbox({Name = "Name", TextDisappear = false, Callback = function(Value)
-        States.Name = Value
-    end})
-    Main:AddButton({Name = "Create", Callback = function()
-        CreateTas(States.Name, "[]")
-        FileDropdown:Refresh(GetFiles(), true)
-    end})
-    Main:AddButton({Name = "Save Selected File", Callback = function()
-        SaveTas(States.Tas)
-        FileDropdown:Refresh(GetFiles(), true)
-        task.wait(0.14)
-        FileDropdown:Set(tostring(States.Tas))
-    end})
-    Main:AddButton({Name = "Refresh Lists", Callback = function()
-        FileDropdown:Refresh(GetFiles(), true)
-        task.wait(0.14)
-        FileDropdown:Set(tostring(States.Tas))
-    end})
-    Main:AddButton({Name = "Start Writing at the end of selected tas", Callback = function()
-        if not States.Tas then
-            Notify("Error", "No TAS file selected", 3)
-            return
-        end
-
-        LoadTas(States.Tas, false)
-
-        if #Frames > 0 then
-            SetFrame(#Frames)
-        end
-
-        States.Writing = true
-        States.Frozen = true
-        Notify("Writing Mode", "Now writing at the end of TAS: " .. States.Tas, 3)
-    end})
-
-    Main:AddSection({Name = "Frame Skipper"})
-    Main:AddTextbox({Name = "Frame Amount", Default = tostring(FrameSkipperAmount), TextDisappear = false, Callback = function(Value)
-        local Amount = tonumber(Value)
-        if Amount then
-            FrameSkipperAmount = Amount
-        else
-            Notify("Error", "enter a valid number you silly", 3)
-        end
-    end})
-    Main:AddButton({Name = "Skip Forward", Callback = function()
-        if States.Reading and States.Tas then
-            States.IsPaused = true
-            Index = math.min(Index + FrameSkipperAmount, #Frames)
-            SetFrame(Index)
-            Notify("TAS", "Skipped forward " .. FrameSkipperAmount .. " frames", 3)
-        end
-    end})
-    
-    local Settings = Window:MakeTab({Name = "Settings", Icon = "rbxassetid://10734950309"})
-    Settings:AddSection({Name = "Configuration"})
-    Settings:AddToggle({Name = "Disable Tasability Notification", Save = true, Flag = "Disable Tasability Notifications"})
-    Settings:AddToggle({Name = "Disable Finish Notification", Save = true, Flag = "Disable Finish Notifications"})
-    Settings:AddToggle({Name = "Disable Frozen Mode Lock Camera", Save = true, Flag = "Disable Frozen Mode Lock Camera"})
-    Settings:AddToggle({Name = "God Mode", Save = true, Flag = "God Mode"})
-    if IsMobile then
-        Settings:AddButton({Name = "Wipe All Frame (Mobile)", Callback = WipeTasData})
-    end
-    Settings:AddButton({Name = "Unload", Callback = function()
-        OrionLib:Destroy()
-    end})
-    
-    local Debugging = Window:MakeTab({Name = "Debugging", Icon = "rbxassetid://10723416057"})
-    FrameIndexLabel = Debugging:AddLabel("Frame Index: ")
-    PoseLabel = Debugging:AddLabel("Pose: ")
-    CurrentAnimLabel = Debugging:AddLabel("Current Animation: ")
-    HumanoidStateLabel = Debugging:AddLabel("Humanoid State: ")
-    FrameInputsLabel = Debugging:AddLabel("Frame Inputs: ")
-end
-
--- Anticheat bypasses
+-- Anticheat bypasses & Exploits
 do
     pcall(function() -- Nymera antikick hook
         local oldNamecall
@@ -1053,17 +970,13 @@ do
         oldspawn = hookfunction(getrenv().spawn, function(...)
             if not checkcaller() and (tostring(getcallingscript()) == "Animate" or tostring(getcallingscript()) == "RbxAnimateScript") then
                 return oldspawn(function()
-                    
+                    print("idk")
                 end)
             end
             return oldspawn(...)
         end)
         sendremote:Destroy()
     end)
-end
-
--- Settings Hooks
-do
     pcall(function()
         local oldNamecall
         oldNamecall = hookmetamethod(game, "__namecall", function(self, ...) -- [Title Card]
@@ -1077,132 +990,12 @@ do
     end)
 end
 
--- States Hell Incoming!!!
-do
-if IsMobile then
-    function Tasability:CreateWindow()
-        local Tas = Utility.CreateInstance("ScreenGui", cloneref(game:GetService("CoreGui")), {
-            ResetOnSpawn = false,
-            IgnoreGuiInset = true,
-            DisplayOrder = 9999
-        })
-    
-        local Frame = Utility.CreateInstance("Frame", Tas, {
-            AutomaticSize = Enum.AutomaticSize.Y,
-            Size = UDim2.new(0, 130, 0, 85),
-            Position = UDim2.new(0.73, 0, 0.44, 0),
-            BorderSizePixel = 0,
-            BorderColor3 = Color3.new(0, 0, 0),
-            BackgroundTransparency = 0.99,
-            BackgroundColor3 = Color3.new(1, 1, 1)
-        })
-    
-        Utility.CreateInstance("UIGridLayout", Frame, {
-            SortOrder = Enum.SortOrder.LayoutOrder,
-            CellSize = UDim2.new(0, 40, 0, 40)
-        })
-    
-        local Window = {
-            Gui = Tas,
-            Frame = Frame
-        }
-    
-        function Window:AddButton(Name, Callback, CallbackDown, CallbackUp)
-            local Button = Utility.CreateInstance("TextButton", self.Frame, {
-                Text = Name,
-                Size = UDim2.new(0, 40, 0, 40),
-                BackgroundColor3 = Color3.new(0.15, 0.15, 0.15),
-                TextColor3 = Color3.new(1, 1, 1),
-                TextStrokeTransparency = 0,
-                Font = Enum.Font.SourceSans,
-                TextScaled = true,
-                BackgroundTransparency = 0.2,
-                BorderSizePixel = 0
-            })
-        
-            Utility.CreateInstance("UICorner", Button, {
-                CornerRadius = UDim.new(0, 6)
-            })
-        
-            Utility.CreateInstance("UIStroke", Button, {
-                Color = Color3.new(0.86, 0.86, 0.86),
-                ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-            })
-        
-            if Callback then
-                Button.MouseButton1Click:Connect(Callback)
-            end
-        
-            if CallbackDown then
-                Button.MouseButton1Down:Connect(CallbackDown)
-            end
-        
-            if CallbackUp then
-                Button.MouseButton1Up:Connect(CallbackUp)
-            end
-        
-            return Button
-        end
-    
-        return Window
-    end
-    
-    local Menu = Tasability:CreateWindow()
-    Menu:AddButton("Frozen", function()
-        States.Frozen = not States.Frozen
-        States.Writing = not States.Frozen
-    end)
-    Menu:AddButton("Pause Reading", function()
-        States.IsPaused = not States.IsPaused
-    end)
-    Menu:AddButton("Spectate", function()
-        States.Frozen = false
-        States.Writing = false
-        States.Reading = false
-        States.Navigating = false
-        Notify("Action", "State set to None.", 3)
-    end)
-    Menu:AddButton("Create", function()
-        States.Writing = true
-        States.Frozen = true
-        Notify("Writing Mode", "Now in writing mode.", 3)
-    end)
-    Menu:AddButton("Test", function()
-        LoadTas(tostring(States.Tas), true)
-    end)
-    Menu:AddButton("Step Forward", function()
-        States.Writing = true
-        States.Frozen = true
-        SetFrame(Index + 1, true)
-    end)
-    Menu:AddButton("Step Backward", function()
-        States.Writing = true
-        States.Frozen = true
-        SetFrame(Index - 1, false)
-    end)
-    Menu:AddButton("Forward", nil, function()
-        States.LoopingForward = true
-        States.LoopingBackward = false
-        States.Frozen = true
-        States.Writing = true
-    end, function()
-        States.LoopingForward = false
-    end)
-    Menu:AddButton("Backward", nil, function()
-        States.LoopingBackward = true
-        States.LoopingForward = false
-        States.Frozen = true
-        States.Writing = true
-    end, function()
-        States.LoopingBackward = false
-    end)
-end
-end
-
 -- Setup
 do
-    SetCursor("ArrowFarCursor", false)
-    UserInputService.MouseIconEnabled = false
+	if ReadCursor then
+		SetCursor("ArrowFarCursor", false)
+		UserInputService.MouseIconEnabled = false
+	end
 end
 
 -- Connections
@@ -1323,8 +1116,215 @@ UserInputService.InputEnded:Connect(function(input, gp)
     end
 end)
 
--- General
-task.spawn(function() -- Frame Handling
+-- Interface
+do
+    local README = Window:MakeTab({Name = "README", Icon = "rbxassetid://10734907168"})
+    README:AddParagraph("FPS Importance", "Use a specific FPS cap and do not change it until you're done making a TAS or are currently not working on a TAS. Changing it will lead to incorrect replay speeds (too fast or too slow).")
+    README:AddParagraph("Backup System", "Every time a TAS file is saved, a backup is automatically created if the file already exists. These backups are numbered (e.g., .bak1, .bak2, etc.) to ensure previous versions are preserved. This prevents accidental loss of data and lets you recover earlier versions of your TAS.")
+    README:AddParagraph("ME!!!!!!!", "do not leave immediately if you're saving an tas bcuz saving delete the file and make it again cuz if u do ur cooked")
+    
+    local Main = Window:MakeTab({Name = "Main", Icon = "rbxassetid://10723374641"})
+    Main:AddSection({Name = "Tasability"})
+    local FileDropdown = Main:AddDropdown({Name = "Files",  Options = GetFiles(),  Callback = function(Value)
+        States.Tas = Value
+    end})
+    Main:AddTextbox({Name = "Name", TextDisappear = false, Callback = function(Value)
+        States.Name = Value
+    end})
+    Main:AddButton({Name = "Create", Callback = function()
+        CreateTas(States.Name, "[]")
+        FileDropdown:Refresh(GetFiles(), true)
+    end})
+    Main:AddButton({Name = "Save Selected File", Callback = function()
+        SaveTas(States.Tas)
+        FileDropdown:Refresh(GetFiles(), true)
+        task.wait(0.14)
+        FileDropdown:Set(tostring(States.Tas))
+    end})
+    Main:AddButton({Name = "Refresh Lists", Callback = function()
+        FileDropdown:Refresh(GetFiles(), true)
+        task.wait(0.14)
+        FileDropdown:Set(tostring(States.Tas))
+    end})
+    Main:AddButton({Name = "Start Writing at the end of selected tas", Callback = function()
+        if not States.Tas then
+            Notify("Error", "No TAS file selected", 3)
+            return
+        end
+
+        LoadTas(States.Tas, false)
+
+        if #Frames > 0 then
+            SetFrame(#Frames)
+        end
+
+        States.Writing = true
+        States.Frozen = true
+        Notify("Writing Mode", "Now writing at the end of TAS: " .. States.Tas, 3)
+    end})
+
+    Main:AddSection({Name = "Frame Skipper"})
+    Main:AddTextbox({Name = "Frame Amount", Default = tostring(FrameSkipperAmount), TextDisappear = false, Callback = function(Value)
+        local Amount = tonumber(Value)
+        if Amount then
+            FrameSkipperAmount = Amount
+        else
+            Notify("Error", "enter a valid number you silly", 3)
+        end
+    end})
+    Main:AddButton({Name = "Skip Forward", Callback = function()
+        if States.Reading and States.Tas then
+            States.IsPaused = true
+            Index = math.min(Index + FrameSkipperAmount, #Frames)
+            SetFrame(Index)
+            Notify("TAS", "Skipped forward " .. FrameSkipperAmount .. " frames", 3)
+        end
+    end})
+    
+    local Settings = Window:MakeTab({Name = "Settings", Icon = "rbxassetid://10734950309"})
+    Settings:AddSection({Name = "Configuration"})
+    Settings:AddToggle({Name = "Disable Tasability Notification", Save = true, Flag = "Disable Tasability Notifications"})
+    Settings:AddToggle({Name = "Disable Finish Notification", Save = true, Flag = "Disable Finish Notifications"})
+    Settings:AddToggle({Name = "Disable Frozen Mode Lock Camera", Save = true, Flag = "Disable Frozen Mode Lock Camera"})
+    Settings:AddToggle({Name = "God Mode", Save = true, Flag = "God Mode"})
+    if IsMobile then
+        Settings:AddButton({Name = "Wipe All Frame (Mobile)", Callback = WipeTasData})
+    end
+    Settings:AddButton({Name = "Unload", Callback = function()
+        OrionLib:Destroy()
+    end})
+    
+    local Debugging = Window:MakeTab({Name = "Debugging", Icon = "rbxassetid://10723416057"})
+    FrameIndexLabel = Debugging:AddLabel("Frame Index: ")
+    PoseLabel = Debugging:AddLabel("Pose: ")
+    CurrentAnimLabel = Debugging:AddLabel("Current Animation: ")
+    HumanoidStateLabel = Debugging:AddLabel("Humanoid State: ")
+    FrameInputsLabel = Debugging:AddLabel("Frame Inputs: ")
+	ZoomLevelLabel = Debugging:AddLabel("Zoom Level: ")
+	
+	if IsMobile then
+	    function Tasability:CreateWindow()
+	        local Tas = Utility.CreateInstance("ScreenGui", cloneref(game:GetService("CoreGui")), {
+	            ResetOnSpawn = false,
+	            IgnoreGuiInset = true,
+	            DisplayOrder = 9999
+	        })
+	    
+	        local Frame = Utility.CreateInstance("Frame", Tas, {
+	            AutomaticSize = Enum.AutomaticSize.Y,
+	            Size = UDim2.new(0, 130, 0, 85),
+	            Position = UDim2.new(0.73, 0, 0.44, 0),
+	            BorderSizePixel = 0,
+	            BorderColor3 = Color3.new(0, 0, 0),
+	            BackgroundTransparency = 0.99,
+	            BackgroundColor3 = Color3.new(1, 1, 1)
+	        })
+	    
+	        Utility.CreateInstance("UIGridLayout", Frame, {
+	            SortOrder = Enum.SortOrder.LayoutOrder,
+	            CellSize = UDim2.new(0, 40, 0, 40)
+	        })
+	    
+	        local Window = {
+	            Gui = Tas,
+	            Frame = Frame
+	        }
+	    
+	        function Window:AddButton(Name, Callback, CallbackDown, CallbackUp)
+	            local Button = Utility.CreateInstance("TextButton", self.Frame, {
+	                Text = Name,
+	                Size = UDim2.new(0, 40, 0, 40),
+	                BackgroundColor3 = Color3.new(0.15, 0.15, 0.15),
+	                TextColor3 = Color3.new(1, 1, 1),
+	                TextStrokeTransparency = 0,
+	                Font = Enum.Font.SourceSans,
+	                TextScaled = true,
+	                BackgroundTransparency = 0.2,
+	                BorderSizePixel = 0
+	            })
+	        
+	            Utility.CreateInstance("UICorner", Button, {
+	                CornerRadius = UDim.new(0, 6)
+	            })
+	        
+	            Utility.CreateInstance("UIStroke", Button, {
+	                Color = Color3.new(0.86, 0.86, 0.86),
+	                ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	            })
+	        
+	            if Callback then
+	                Button.MouseButton1Click:Connect(Callback)
+	            end
+	        
+	            if CallbackDown then
+	                Button.MouseButton1Down:Connect(CallbackDown)
+	            end
+	        
+	            if CallbackUp then
+	                Button.MouseButton1Up:Connect(CallbackUp)
+	            end
+	        
+	            return Button
+	        end
+	    
+	        return Window
+	    end
+	    
+	    local Menu = Tasability:CreateWindow()
+	    Menu:AddButton("Frozen", function()
+	        States.Frozen = not States.Frozen
+	        States.Writing = not States.Frozen
+	    end)
+	    Menu:AddButton("Pause Reading", function()
+	        States.IsPaused = not States.IsPaused
+	    end)
+	    Menu:AddButton("Spectate", function()
+	        States.Frozen = false
+	        States.Writing = false
+	        States.Reading = false
+	        States.Navigating = false
+	        Notify("Action", "State set to None.", 3)
+	    end)
+	    Menu:AddButton("Create", function()
+	        States.Writing = true
+	        States.Frozen = true
+	        Notify("Writing Mode", "Now in writing mode.", 3)
+	    end)
+	    Menu:AddButton("Test", function()
+	        LoadTas(tostring(States.Tas), true)
+	    end)
+	    Menu:AddButton("Step Forward", function()
+	        States.Writing = true
+	        States.Frozen = true
+	        SetFrame(Index + 1, true)
+	    end)
+	    Menu:AddButton("Step Backward", function()
+	        States.Writing = true
+	        States.Frozen = true
+	        SetFrame(Index - 1, false)
+	    end)
+	    Menu:AddButton("Forward", nil, function()
+	        States.LoopingForward = true
+	        States.LoopingBackward = false
+	        States.Frozen = true
+	        States.Writing = true
+	    end, function()
+	        States.LoopingForward = false
+	    end)
+	    Menu:AddButton("Backward", nil, function()
+	        States.LoopingBackward = true
+	        States.LoopingForward = false
+	        States.Frozen = true
+	        States.Writing = true
+	    end, function()
+	        States.LoopingBackward = false
+	    end)
+	end
+end
+
+-- Run Connections
+
+run(function() -- Frame Handling
     while true do
         if States.Writing and States.Frozen then
             if States.LoopingForward and Index < #Frames then
@@ -1337,7 +1337,7 @@ task.spawn(function() -- Frame Handling
     end
 end)
 
-task.spawn(function() -- Update cursor
+run(function() -- Update cursor
     while true do
         Cursor.Image = CursorIcon
         Cursor.Size = CursorSize
@@ -1372,7 +1372,7 @@ task.spawn(function() -- Update cursor
     end
 end)
 
-task.spawn(function() -- Reading
+run(function() -- Reading
     while true do
         if States.Reading and Index <= #Frames and not States.IsPaused then
             local Frame = Frames[Index]
@@ -1435,7 +1435,7 @@ task.spawn(function() -- Reading
     end
 end)
 
-task.spawn(function() -- Writing
+run(function() -- Writing
     while true do
         if States.Writing and not States.Reading and not States.Frozen then
             local Inputs = {}
@@ -1471,7 +1471,7 @@ task.spawn(function() -- Writing
     end
 end)
 
-task.spawn(function() -- Freezing
+run(function() -- Freezing
     while true do
         pcall(function()
             if not States.Reading and not States.Dead then
@@ -1496,14 +1496,14 @@ task.spawn(function() -- Freezing
     end
 end)
 
-task.spawn(function()
+run(function()
     while true do
         FrameIndexLabel:Set("Frame Index: " .. tostring(Index))
         PoseLabel:Set("Pose: " .. tostring(Pose))
         CurrentAnimLabel:Set("Current Animation: " .. tostring(CurrentAnim))
         HumanoidState = Humanoid:GetState().Name
         HumanoidStateLabel:Set("Humanoid State: " .. tostring(HumanoidState))
-
+        ZoomLevelLabel:Set("Zoom Level: " .. string.format("%.2f", GetZoom()))
         local outputkeys = {}
         for key in pairs(HeldKeys) do
             table.insert(outputkeys, key)
@@ -1525,16 +1525,15 @@ end)
 --[[
 	Tasability V1.3 - Orion Edition
 	Created by: nymera_src
-
 	Originally inspired by ReplayAbility (a few code pasted),
 
-	Connections Input Playback Support:
-
-	Download Connections to run Input Connections here:
+	~ Connections Input Playback Support ~
+	
+	[+] Download Connections to run Input Connections here:
 	https://www.autohotkey.com/download/Connections-v2.exe
-
-	Download the Input tool here:
+	
+	[+] Download the Input tool here:
 	https://github.com/NymeraAnHomie/Libraries/blob/main/Tasability/TasabilityInputPasser.exe
 
-	Fein.
+	Reverted to an old verison due to bugs appearing in new version
 ]]
