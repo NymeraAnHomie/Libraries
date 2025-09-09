@@ -60,7 +60,7 @@ local Remove = table.remove
 local Concat = table.concat
 
 
-
+local Map = Workspace.Map
 
 
 local quotesForSomebody = {
@@ -68,7 +68,8 @@ local quotesForSomebody = {
 	"it screamed.",
 	
 	"he following you.",
-	"hey an apple!"
+	"hey an apple!",
+	"it me, null."
 }
 
 local Kiwisense = {
@@ -199,6 +200,15 @@ local Window = Library:MakeWindow{Name = "cyrushaxx but it fucking dying 5000 TU
 		Teleporting:AddSection{Name = "NPCs"} -- Workspace.NPCs.Abraska.HumanoidRootPart
 		local NPCTarget = Teleporting:AddDropdown{Name = "Target", Default = "kys", Options = NPCsList, Flag = "Teleporting%%NPCs Target Dropdown"}
 		Teleporting:AddToggle{Name = "Start", Flag = "Teleporting%%Start Teleporting"}
+		
+		Teleporting:AddSection{Name = "Pitfall"}
+		Teleporting:AddButton{Name = "TP To Pitfall Orb",Callback = function()
+		    TeleportCFrame(Map.Pitfall.CFrame, false, Flags["Teleporting%%Tweening Speed"].Value)
+		end}
+	end
+	
+	local AutoFarm = Window:MakeTab{Name = "Auto Farm", Icon = "rbxassetid://4483345998"} do
+		
 	end
 	
 	OrionLib:WindowMobileToggle{}
@@ -232,5 +242,5 @@ end)
 
 if LocalPlayer.Name == "goku_instinct54" then
 	local tabby = Window:MakeTab{Name = "it me. ", Icon = "rbxassetid://4483345998"}
-	tabby:AddParagraph("book of babel.", quotesForSomebody[Random(1, #fruits)])
+	tabby:AddParagraph("book of babel.", quotesForSomebody[Random(1, #quotesForSomebody)])
 end
