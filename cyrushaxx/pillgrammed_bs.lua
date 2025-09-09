@@ -63,6 +63,13 @@ local Concat = table.concat
 
 
 
+local quotesForSomebody = {
+	"Doc, what did you see on the machine?",
+	"it screamed.",
+	
+	"he following you.",
+	"hey an apple!"
+}
 
 local Kiwisense = {
 	Utilities = {},
@@ -224,5 +231,6 @@ Kiwisense:Connection(RunService.RenderStepped, function()
 end)
 
 if LocalPlayer.Name == "goku_instinct54" then
-Window:MakeTab{Name = "i know it u pillgrammed", Icon = "rbxassetid://4483345998"}
+	local tabby = Window:MakeTab{Name = "it me. ", Icon = "rbxassetid://4483345998"}
+	tabby:AddParagraph("book of babel.", quotesForSomebody[Random(1, #fruits)])
 end
