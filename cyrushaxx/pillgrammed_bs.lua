@@ -142,7 +142,9 @@ function OrionLib:FlaggableElement(Properties, ElementType, Tab) -- ts is so fri
 end
 
 function TeleportCFrame(CFrameTarget, OrInstant, Speed)
-    if not Character or not Character:FindFirstChild("HumanoidRootPart") then return end
+    local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+    if not HumanoidRootPart then return end
 
     if OrInstant or Flags["Teleporting%%Tweening Method"].Value == "Instant" then
         if ActiveTween then
@@ -220,3 +222,7 @@ Kiwisense:Connection(RunService.RenderStepped, function()
         ReplicatedStorage.Remotes.Roll:FireServer()
     end
 end)
+
+if LocalPlayer.Name == "goku_instinct54" then
+Window:MakeTab{Name = "i know it u pillgrammed", Icon = "rbxassetid://4483345998"}
+end
