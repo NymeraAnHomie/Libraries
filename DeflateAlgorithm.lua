@@ -324,4 +324,3 @@ deflate._internal = {
 }
 
 return deflate
-```0
