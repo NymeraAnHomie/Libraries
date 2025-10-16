@@ -1,7 +1,76 @@
--- this has no seek backward frame shit 💔
 local Version = "v1.0"
 local Utilities = {} -- Ignore
 local Frames = {} -- Ignore
+
+local bit = bit32 or bit
+
+if not bit then
+    local function to32(x) return x % 2^32 end
+
+    local function rshift(x, n)
+        x = to32(x)
+        return math.floor(x / 2^n) % 2^32
+    end
+
+    local function lshift(x, n)
+        x = to32(x)
+        return to32(x * 2^n)
+    end
+
+    local function band(a, b)
+        a = to32(a); b = to32(b)
+        local r = 0
+        local bitval = 1
+        for i = 0, 31 do
+            if (a % 2 == 1) and (b % 2 == 1) then
+                r = r + bitval
+            end
+            a = math.floor(a / 2)
+            b = math.floor(b / 2)
+            bitval = bitval * 2
+        end
+        return r
+    end
+
+    local function bor(a, b)
+        a = to32(a); b = to32(b)
+        local r = 0
+        local bitval = 1
+        for i = 0, 31 do
+            if (a % 2 == 1) or (b % 2 == 1) then
+                r = r + bitval
+            end
+            a = math.floor(a / 2)
+            b = math.floor(b / 2)
+            bitval = bitval * 2
+        end
+        return r
+    end
+
+    local function bxor(a, b)
+        a = to32(a); b = to32(b)
+        local r = 0
+        local bitval = 1
+        for i = 0, 31 do
+            if (a % 2) ~= (b % 2) then
+                r = r + bitval
+            end
+            a = math.floor(a / 2)
+            b = math.floor(b / 2)
+            bitval = bitval * 2
+        end
+        return r
+    end
+
+    bit = {
+        rshift = rshift,
+        lshift = lshift,
+        band = band,
+        bor = bor,
+        bxor = bxor,
+        bnot = function(x) return to32(0xFFFFFFFF - (x % 2^32)) end
+    }
+end
 
 -- Variables
 -- Data Types
@@ -58,6 +127,11 @@ local Configuration = {
 	PlaybackMouseLocation = true,
 	BypassAntiCheat = false,
 	PrettyFormating = false,
+	DeflateAlgorithm = {
+		Enabled = false,
+		Base64 = true,
+		Mode = "auto",
+	},
 	Keybind = {
 		Frozen = "E",
 	    Wipe = "Delete",
@@ -140,12 +214,11 @@ for _, v in ipairs(Configuration.Folders) do
 end
 --
 
--- Json
 local Json = {}
+Json.Class = "ModuleScript"
 Json.__index = Json
-Json.ClassName = "Json"
 
-workspace:FindFirstChild("ParseString, ParseObject; you surely made me wanna end it all also circular ref :smile:")
+workspace:FindFirstChild("ParseString, ParseObject; surely took me long to make also circular ref so yay")
 
 local function EscapeString(Value)
     return '"' .. Value:gsub('[%z\1-\31\\"]', function(Char)
@@ -410,6 +483,366 @@ end
 function Json.Decode(Str)
     return DeserializeValue(Json.Parse(Str))
 end
+--
+
+local Deflate = {}
+Deflate.Class = "ModuleScript"
+Deflate.__index = Deflate
+
+workspace:FindFirstChild("honestly an rlly good deflate algorithm")
+
+local function Split(String, Separator)
+    local Result = {}
+    for Part in String:gmatch("([^" .. Separator .. "]+)") do
+        Result[#Result + 1] = Part
+    end
+    return Result
+end
+
+local function TryLoad(Path)
+    local Success, Func = pcall(function()
+        return load("return " .. Path)()
+    end)
+    if Success and type(Func) == "function" then
+        return Func
+    end
+    return nil
+end
+
+local function FindFunction(Path)
+    if type(Path) ~= "string" or Path == "" then
+        return nil
+    end
+
+    local Func = TryLoad(Path)
+    if Func then
+        return Func
+    end
+
+    local Env = _G
+    for _, Key in ipairs(Split(Path, "%.")) do
+        if type(Env) ~= "table" and type(Env) ~= "userdata" then
+            Env = nil
+            break
+        end
+        local Ok, Val = pcall(function()
+            return Env[Key]
+        end)
+        if not Ok then
+            Env = nil
+            break
+        end
+        Env = Val
+        if Env == nil then break end
+    end
+
+    if type(Env) == "function" then
+        return Env
+    end
+    return nil
+end
+
+local CompressorCandidates = {
+    "syn.crypt.compress", "syn.crypto.compress", "syn.compress", "syn.deflate",
+    "crypt.compress", "crypt.deflate", "compress", "zlib.compress", "zlib.deflate",
+    "deflate.compress", "deflate"
+}
+
+local DecompressorCandidates = {
+    "syn.crypt.decompress", "syn.crypto.decompress", "syn.decompress", "syn.inflate",
+    "crypt.decompress", "crypt.inflate", "decompress", "zlib.decompress", "zlib.inflate",
+    "deflate.decompress", "inflate"
+}
+
+local CompressFunction, DecompressFunction
+
+for _, Path in ipairs(CompressorCandidates) do
+    local F = FindFunction(Path)
+    if F then
+        CompressFunction = F
+        break
+    end
+end
+
+for _, Path in ipairs(DecompressorCandidates) do
+    local F = FindFunction(Path)
+    if F then
+        DecompressFunction = F
+        break
+    end
+end
+
+local function Adler32(Data)
+    local A, B = 1, 0
+    for i = 1, #Data do
+        A = (A + Data:byte(i)) % 65521
+        B = (B + A) % 65521
+    end
+    return B * 2^16 + A
+end
+
+local function PackU32BE(Number)
+    local Bytes = {}
+    for i = 3, 0, -1 do
+        Bytes[#Bytes + 1] = string.char(bit.band(bit.rshift(Number, i * 8), 0xFF))
+    end
+    return table.concat(Bytes)
+end
+
+local function PackU16LE(Number)
+    local Lo = Number % 256
+    local Hi = math.floor(Number / 256) % 256
+    return string.char(Lo, Hi)
+end
+
+local function UnpackU16LE(String, Pos)
+    Pos = Pos or 1
+    local Lo = String:byte(Pos) or 0
+    local Hi = String:byte(Pos + 1) or 0
+    return Lo + Hi * 256
+end
+
+local function DeflateUncompressedBlock(Data)
+    local Length = #Data
+    if Length <= 0xFFFF then
+        local LenLo = Length % 256
+        local LenHi = math.floor(Length / 256)
+        local NLen = 0xFFFF - Length
+        local NLenLo = NLen % 256
+        local NLenHi = math.floor(NLen / 256)
+        return string.char(1, LenLo, LenHi, NLenLo, NLenHi) .. Data
+    end
+
+    local Output, Index = {}, 1
+    while Index <= Length do
+        local Chunk = Data:sub(Index, Index + 65535 - 1)
+        local Last = (Index + 65535 > Length)
+        local BFinal = Last and 1 or 0
+        local CLen = #Chunk
+        local CLenLo = CLen % 256
+        local CLenHi = math.floor(CLen / 256)
+        local NCLen = 0xFFFF - CLen
+        local NCLenLo = NCLen % 256
+        local NCLenHi = math.floor(NCLen / 256)
+        Output[#Output + 1] = string.char(BFinal, CLenLo, CLenHi, NCLenLo, NCLenHi) .. Chunk
+        Index = Index + 65535
+    end
+    return table.concat(Output)
+end
+
+local function ZlibWrapUncompressed(Data)
+    local Header = "\x78\x9C"
+    local Body = DeflateUncompressedBlock(Data)
+    local Adler = Adler32(Data)
+    return Header .. Body .. PackU32BE(Adler)
+end
+
+local function ZlibUnwrapUncompressed(Data)
+    assert(type(Data) == "string" and #Data >= 2, "Invalid zlib data")
+
+    local Pos, OutputChunks = 3, {}
+
+    while Pos <= #Data - 4 do
+        local Hdr = Data:byte(Pos); Pos = Pos + 1
+
+        local BFinal = bit.band(Hdr, 1)
+        local BType  = bit.band(bit.rshift(Hdr, 1), 3)
+
+        if BType == 0 then
+            local Len  = UnpackU16LE(Data, Pos); Pos = Pos + 2
+            local NLen = UnpackU16LE(Data, Pos); Pos = Pos + 2
+
+            if bit.band(bit.bxor(Len, NLen), 0xFFFF) ~= 0xFFFF then
+                error("Invalid uncompressed block lengths")
+            end
+
+            local Chunk = Data:sub(Pos, Pos + Len - 1)
+            if #Chunk < Len then
+                error("Incomplete uncompressed block")
+            end
+            OutputChunks[#OutputChunks + 1] = Chunk
+            Pos = Pos + Len
+
+            if BFinal == 1 then break end
+        else
+            error("Unsupported deflate block type: " .. tostring(BType))
+        end
+    end
+
+    local ExpectedAdler = 0
+    if Pos <= #Data - 3 then
+        ExpectedAdler = bit.bor(
+            bit.lshift((Data:byte(Pos)     or 0), 24),
+            bit.lshift((Data:byte(Pos + 1) or 0), 16),
+            bit.lshift((Data:byte(Pos + 2) or 0), 8),
+            (Data:byte(Pos + 3) or 0)
+        )
+    end
+
+    local Output = table.concat(OutputChunks)
+    if ExpectedAdler ~= 0 and Adler32(Output) ~= ExpectedAdler then
+        error("Adler32 checksum mismatch")
+    end
+
+    return Output
+end
+
+local Base64Chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+local Base64Map = {}
+for i = 1, #Base64Chars do
+    Base64Map[Base64Chars:sub(i, i)] = i - 1
+end
+
+local function Base64EncodeLua(Data)
+    if Data == "" then return "" end
+    local Result = {}
+    local Length = #Data
+    local i = 1
+
+    while i <= Length - 2 do
+        local A, B, C = Data:byte(i, i + 2)
+        local N = A * 65536 + B * 256 + C
+        local C1 = math.floor(N / 262144) % 64 + 1
+        local C2 = math.floor(N / 4096) % 64 + 1
+        local C3 = math.floor(N / 64) % 64 + 1
+        local C4 = N % 64 + 1
+        Result[#Result + 1] = Base64Chars:sub(C1, C1)
+            .. Base64Chars:sub(C2, C2)
+            .. Base64Chars:sub(C3, C3)
+            .. Base64Chars:sub(C4, C4)
+        i += 3
+    end
+
+    local Rem = Length - i + 1
+    if Rem == 1 then
+        local A = Data:byte(i)
+        local N = A * 65536
+        local C1 = math.floor(N / 262144) % 64 + 1
+        local C2 = math.floor(N / 4096) % 64 + 1
+        Result[#Result + 1] = Base64Chars:sub(C1, C1)
+            .. Base64Chars:sub(C2, C2)
+            .. "=="
+    elseif Rem == 2 then
+        local A, B = Data:byte(i, i + 1)
+        local N = A * 65536 + B * 256
+        local C1 = math.floor(N / 262144) % 64 + 1
+        local C2 = math.floor(N / 4096) % 64 + 1
+        local C3 = math.floor(N / 64) % 64 + 1
+        Result[#Result + 1] = Base64Chars:sub(C1, C1)
+            .. Base64Chars:sub(C2, C2)
+            .. Base64Chars:sub(C3, C3)
+            .. "="
+    end
+
+    return table.concat(Result)
+end
+
+local function Base64DecodeLua(Str)
+    local Output, Buffer, Bits = {}, 0, 0
+    for i = 1, #Str do
+        local Ch = Str:sub(i, i)
+        if Ch == "=" then break end
+        local Val = Base64Map[Ch]
+        if Val then
+            Buffer = Buffer * 64 + Val
+            Bits += 6
+            if Bits >= 8 then
+                Bits -= 8
+                local Byte = math.floor(Buffer / (2 ^ Bits)) % 256
+                Output[#Output + 1] = string.char(Byte)
+            end
+        end
+    end
+    return table.concat(Output)
+end
+
+local function FindBase64Functions()
+    local Enc, Dec
+    local Candidates = {
+        "syn.crypt.base64.encode", "syn.crypt.base64.decode",
+        "crypt.base64.encode", "crypt.base64.decode",
+        "syn.crypt.base64_encode", "syn.crypt.base64_decode",
+        "crypt.base64_encode", "crypt.base64_decode"
+    }
+    for i = 1, #Candidates, 2 do
+        local EPath, DPath = Candidates[i], Candidates[i + 1]
+        local E, D = FindFunction(EPath), FindFunction(DPath)
+        if type(E) == "function" and type(D) == "function" then
+            Enc, Dec = E, D
+            break
+        end
+    end
+    return Enc, Dec
+end
+
+local Base64Enc, Base64Dec = FindBase64Functions()
+if not Base64Enc or not Base64Dec then
+    Base64Enc = Base64EncodeLua
+    Base64Dec = Base64DecodeLua
+end
+
+function Deflate.Compress(Data, Options)
+    Options = Options or {}
+    local Mode = Options.mode or "auto"
+    local UseBase64 = Options.base64 == true
+
+    if Mode == "auto" then
+        if CompressFunction then
+            local Ok, Result = pcall(CompressFunction, Data)
+            if Ok then
+                return UseBase64 and Base64Enc(Result) or Result
+            end
+        end
+        local Wrapped = ZlibWrapUncompressed(Data)
+        return UseBase64 and Base64Enc(Wrapped) or Wrapped
+    elseif Mode == "executor" then
+        assert(CompressFunction, "Executor compress not found")
+        local Ok, Result = pcall(CompressFunction, Data)
+        assert(Ok, "Executor compress failed")
+        return UseBase64 and Base64Enc(Result) or Result
+    elseif Mode == "zlib_uncompressed" then
+        local Wrapped = ZlibWrapUncompressed(Data)
+        return UseBase64 and Base64Enc(Wrapped) or Wrapped
+    else
+        error("Unknown compression mode: " .. tostring(Mode))
+    end
+end
+
+function Deflate.Decompress(Data, Options)
+    Options = Options or {}
+    local Mode = Options.mode or "auto"
+    local IsBase64 = Options.base64 == true
+
+    local Raw = IsBase64 and Base64Dec(Data) or Data
+
+    if Mode == "auto" then
+        if DecompressFunction then
+            local Ok, Result = pcall(DecompressFunction, Raw)
+            if Ok then return Result end
+        end
+        local Ok, Result = pcall(ZlibUnwrapUncompressed, Raw)
+        if Ok then return Result end
+        error("No available decompressor")
+    elseif Mode == "executor" then
+        assert(DecompressFunction, "Executor decompress not found")
+        local Ok, Result = pcall(DecompressFunction, Raw)
+        assert(Ok, "Executor decompress failed")
+        return Result
+    elseif Mode == "zlib_uncompressed" then
+        return ZlibUnwrapUncompressed(Raw)
+    else
+        error("Unknown decompression mode: " .. tostring(Mode))
+    end
+end
+
+function Deflate.HasExecutor()
+    return (CompressFunction ~= nil) or (DecompressFunction ~= nil)
+end
+
+Deflate._Internal = {
+    CompressorFound = CompressFunction ~= nil,
+    DecompressorFound = DecompressFunction ~= nil
+}
 --
 
 -- TODO: Use Humanoid States to do the Animation or use an custom Animation? [Exactly here]
@@ -771,7 +1204,7 @@ do
 		        return false
 		    end
 		
-		    writefile(FilePath, "wow an empty file")
+		    writefile(FilePath, "wow an empty file good job")
 		    print("File created:", FilePath)
 			return true
 		end
@@ -804,20 +1237,30 @@ do
 		    end
 		
 		    local Success, Encoded = pcall(function()
+		        local jsonStr
 		        if Configuration.PrettyFormatting then
-		            return Json.PrettyEncode(Frames, 4)
+		            jsonStr = Json.PrettyEncode(Frames, 4)
 		        else
-		            return Json.Encode(Frames)
+		            jsonStr = Json.Encode(Frames)
+		        end
+		
+		        if Configuration.DeflateAlgorithm and Configuration.DeflateAlgorithm.Enabled then
+		            return Deflate.Compress(jsonStr, {
+		                mode = Configuration.DeflateAlgorithm.Mode or "auto",
+		                base64 = Configuration.DeflateAlgorithm.Base64 or false
+		            })
+		        else
+		            return jsonStr
 		        end
 		    end)
 		
 		    if not Success then
-		        warn("Failed to encode Frames to JSON:", Encoded)
+		        warn("Failed to encode Frames:", Encoded)
 		        return false
 		    end
 		
 		    writefile(FilePath, Encoded)
-		    print("Saved TAS file:", FilePath, " (pretty =", tostring(Configuration.PrettyFormatting), ")")
+		    print("Saved TAS file:", FilePath, " (compressed =", tostring(Configuration.DeflateAlgorithm and Configuration.DeflateAlgorithm.enabled), ")")
 		    return true
 		end
 		
@@ -831,19 +1274,32 @@ do
 		    end
 		
 		    local Data = readfile(FilePath)
+		    local DecodedData
 		
-		    local Success, Decoded = pcall(function()
-		        local Parsed, _ = Json.Parse(Data)
-		        return Parsed
+		    local Success, Result = pcall(function()
+		        if Configuration.DeflateAlgorithm and Configuration.DeflateAlgorithm.Enabled then
+		            return Deflate.Decompress(Data, {
+		                mode = Configuration.DeflateAlgorithm.Mode or "auto",
+		                base64 = Configuration.DeflateAlgorithm.Base64 or false
+		            })
+		        else
+		            return Data
+		        end
 		    end)
 		
-		    if not Success or type(Decoded) ~= "table" then
-		        warn("failed to decode JSON from file:", Name)
+		    if not Success then
+		        warn("Failed to decompress TAS file:", Result)
 		        return false
 		    end
 		
-		    Frames = Decoded
-		    print("[yippe]: loaded TAS file:", FilePath)
+		    local Parsed, _ = Json.Parse(Result)
+		    if type(Parsed) ~= "table" then
+		        warn("Invalid JSON in file:", Name)
+		        return false
+		    end
+		
+		    Frames = Parsed
+		    print("[yippe]: Loaded TAS file:", FilePath, " (compressed =", tostring(Configuration.DeflateAlgorithm and Configuration.DeflateAlgorithm.enabled), ")")
 		    return true
 		end
 		--
@@ -916,6 +1372,24 @@ end
 
 
 
+--
+local CursorHolder = Utilities.Functions:Create("ScreenGui", {
+	Name = "okay",
+	DisplayOrder = 9999,
+	ZIndexBehavior = Enum.ZIndexBehavior.Global,
+	-- Do not use IgnoreGuiInset, since it break the offset no idea why...
+	Parent = gethui() -- hide from evil explorer
+})
+
+local Cursor = Utilities.Functions:Create("ImageLabel", {
+	Name = "okay",
+	Parent = CursorHolder
+})
+
+-- So uhh this is we can acess some instance easier incase some code block this preventing us from using the variables so we use table instead
+Configuration.Instances["CursorHolder"] = CursorHolder
+Configuration.Instances["Cursor"] = Cursor
+--
 
 -- Helper Functions
 local function ToKeyCode(Key)
@@ -1037,7 +1511,7 @@ ReGui:DefineElement("Textbox", {
 })
 
 local Window = ReGui:TabsWindow{
-    Title = "Nymera Tasability - " .. Version .. " | The newly rewrite trust",
+    Title = "Nymera tasability - " .. Version .. " | The newly rewrite trust",
     Size = DimOffset(550, 350),
     NoScroll = false
 }
@@ -1063,11 +1537,11 @@ ConsoleWindow:ToggleVisibility()
 
 -- Menu Bar
 local MenuBar = Window:MenuBar()
-local Menu = MenuBar:MenuItem{Text = "File Management"}
+local Menu = MenuBar:MenuItem{Text = "Management"}
 
-Menu:Selectable{Text = "Create File",Callback = function()
-    local PopupModal = Window:PopupModal{Title = "Create File"}
-    PopupModal:Textbox{Text = "Enter File Name", Placeholder = "File name...", Callback = function(_, Name)
+Menu:Selectable{Text = "Create file", Callback = function()
+    local PopupModal = Window:PopupModal{Title = "Create file"}
+    PopupModal:Textbox{Text = "Enter file name", Placeholder = "File name...", Callback = function(_, Name)
         ReplayName = Name
     end}
     PopupModal:Button{Text = "Create", Callback = function()
@@ -1075,7 +1549,7 @@ Menu:Selectable{Text = "Create File",Callback = function()
         if DidCreate then
             print("File created successfully: " .. ReplayName)
         else
-            local ExistPopup = Window:PopupModal{Title = "File Exists"}
+            local ExistPopup = Window:PopupModal{Title = "File exists"}
             ExistPopup:Button{Text = "Ok", Callback = function()
                 ExistPopup:ClosePopup()
             end}
@@ -1086,8 +1560,8 @@ Menu:Selectable{Text = "Create File",Callback = function()
         PopupModal:ClosePopup()
     end}
 end}
-Menu:Selectable{Text = "Save to File", Callback = function()
-    local PopupModal = Window:PopupModal{Title = "Save File"}
+Menu:Selectable{Text = "Save to file", Callback = function()
+    local PopupModal = Window:PopupModal{Title = "Save file"}
     PopupModal:Combo{Text = "Select file", Placeholder = "Select file to overwrite", GetItems = Utilities.Tasability.GetReplayFiles, Callback = function(_, FileName)
         ReplayFile = FileName
     end}
@@ -1099,8 +1573,8 @@ Menu:Selectable{Text = "Save to File", Callback = function()
         PopupModal:ClosePopup()
     end}
 end}
-Menu:Selectable{Text = "Load File", Callback = function()
-    local PopupModal = Window:PopupModal{Title = "Load File"}
+Menu:Selectable{Text = "Load file", Callback = function()
+    local PopupModal = Window:PopupModal{Title = "Load file"}
     PopupModal:Combo{Text = "Select file", Placeholder = "Select file to load", GetItems = Utilities.Tasability.GetReplayFiles, Callback = function(_, FileName)
         ReplayFile = FileName
     end}
@@ -1112,7 +1586,7 @@ Menu:Selectable{Text = "Load File", Callback = function()
         PopupModal:ClosePopup()
     end}
 end}
-Menu:Selectable{Text = "Delete File", Callback = function()
+Menu:Selectable{Text = "Delete file", Callback = function()
     local PopupModal = Window:PopupModal{Title = "Delete File"}
     PopupModal:Combo{Text = "Select file", Placeholder = "Delete file here", GetItems = Utilities.Tasability.GetReplayFiles, Callback = function(_, FileName)
         ReplayFile = FileName
@@ -1125,59 +1599,61 @@ Menu:Selectable{Text = "Delete File", Callback = function()
         PopupModal:ClosePopup()
     end}
 end}
+
+Main:Label{Text = "Main"}
 Menu:Selectable{Text = "Console", Callback = function()
     ConsoleWindow:ToggleVisibility()
 end}
-Main:Checkbox{Label = "Playback Inputs",Value = Configuration.PlaybackInputs, Callback = function(self)
+Main:Checkbox{Label = "Playback inputs",Value = Configuration.PlaybackInputs, Callback = function(self)
     Configuration.PlaybackInputs = self.Value
 end}
-Main:Checkbox{Label = "Playback Mouse Location", Value = Configuration.PlaybackMouseLocation, Callback = function(self)
+Main:Checkbox{Label = "Playback mouse location", Value = Configuration.PlaybackMouseLocation, Callback = function(self)
     Configuration.PlaybackMouseLocation = self.Value
 end}
-Main:Checkbox{Label = "Bypass Anti Cheat", Value = Configuration.BypassAntiCheat, Callback = function(self)
+Main:Checkbox{Label = "Bypass anti cheat", Value = Configuration.BypassAntiCheat, Callback = function(self)
     Configuration.BypassAntiCheat = self.Value
 end}
-Main:Checkbox{Label = "Pretty Formating", Value = Configuration.PrettyFormating, Callback = function(self)
+Main:Checkbox{Label = "Pretty formating", Value = Configuration.PrettyFormating, Callback = function(self)
     Configuration.PrettyFormating = self.Value
 end}
-Main:Button{Text = "Jump/Edit to Last Frame", Callback = function()
+Main:Button{Text = "Jump/edit to last frame", Callback = function()
     Utilities.Tasability.SetFrame(#Frames)
 end}
 
-local CurrentReplayFile = Info:Label{Text = "Current Replay File: None"}
-local CurrentFrameIndex = Info:Label{Text = "Current Frame index: ???"}
-local CurrentZoomValue = Info:Label{Text = "Current Zoom value: ???"}
-
-Keybind:Keybind{Label = "Menu Bind", Value = ToKeyCode(Configuration.MenuBind), Callback = function(self, KeyId)
-    Configuration.MenuBind = KeyId
+Main:Label{Text = "Deflate algorithm."}
+Main:Checkbox{Label = "Enabled", Value = Configuration.DeflateAlgorithm.Enabled, Callback = function(self)
+    Configuration.DeflateAlgorithm.Enabled = self.Value
 end}
-Keybind:Keybind{Label = "Frozen", Value = ToKeyCode(Configuration.Keybind.Frozen), Callback = function(self, KeyId)
-    Configuration.Keybind.Frozen = KeyId
+Main:Checkbox{Label = "Base64", Value = Configuration.DeflateAlgorithm.Base64, Callback = function(self)
+    Configuration.DeflateAlgorithm.Base64 = self.Value
 end}
-Keybind:Keybind{Label = "Wipe", Value = ToKeyCode(Configuration.Keybind.Wipe), Callback = function(self, KeyId)
-    Configuration.Keybind.Wipe = KeyId
-end}
-Keybind:Keybind{Label = "Spectate", Value = ToKeyCode(Configuration.Keybind.Spectate), Callback = function(self, KeyId)
-    Configuration.Keybind.Spectate = KeyId
-end}
-Keybind:Keybind{Label = "Create", Value = ToKeyCode(Configuration.Keybind.Create), Callback = function(self, KeyId)
-    Configuration.Keybind.Create = KeyId
-end}
-Keybind:Keybind{Label = "Test", Value = ToKeyCode(Configuration.Keybind.Test), Callback = function(self, KeyId)
-    Configuration.Keybind.Test = KeyId
+Main:Combo{Label = "Mode", Selected = Configuration.DeflateAlgorithm.Mode, Items = {"auto", "executor", "zlib_uncompressed"}, Callback = function(self)
+	Configuration.DeflateAlgorithm.Mode = self.Value
 end}
 
-local CursorHolder = Utilities.Functions:Create("ScreenGui", {
-	Name = "okay",
-	DisplayOrder = 9999,
-	ZIndexBehavior = Enum.ZIndexBehavior.Global,
-	Parent = gethui()
-})
+local CurrentReplayFile = Info:Label{Text = "Current replay file: n/a"}
+local CurrentFrameIndex = Info:Label{Text = "Current frame index: n/a"}
+local CurrentZoomValue = Info:Label{Text = "Current zoom value: n/a"}
 
-local MainCursor = Utilities.Functions:Create("ImageLabel", {
-	Name = "okay",
-	Parent = CursorHolder
-})
+Keybind:Label{Text = "Hotkeys."}
+Keybind:Keybind{Label = "Menu Bind", Value = ToKeyCode(Configuration.MenuBind), Callback = function(self)
+    Configuration.MenuBind = self.KeyId
+end}
+Keybind:Keybind{Label = "Frozen", Value = ToKeyCode(Configuration.Keybind.Frozen), Callback = function(self)
+    Configuration.Keybind.Frozen = self.KeyId
+end}
+Keybind:Keybind{Label = "Wipe", Value = ToKeyCode(Configuration.Keybind.Wipe), Callback = function(self)
+    Configuration.Keybind.Wipe = self.KeyId
+end}
+Keybind:Keybind{Label = "Spectate", Value = ToKeyCode(Configuration.Keybind.Spectate), Callback = function(self)
+    Configuration.Keybind.Spectate = self.KeyId
+end}
+Keybind:Keybind{Label = "Create", Value = ToKeyCode(Configuration.Keybind.Create), Callback = function(self)
+    Configuration.Keybind.Create = self.KeyId
+end}
+Keybind:Keybind{Label = "Test", Value = ToKeyCode(Configuration.Keybind.Test), Callback = function(self)
+    Configuration.Keybind.Test = self.KeyId
+end}
 
 -- Set up
 Utilities.KeyDown:Connect(function(KeyCode)
@@ -1199,8 +1675,7 @@ end)
 -- Mouse
 Insert(Configuration.Connections, RunService.RenderStepped:Connect(function()
 	if Configuration.PlaybackMouseLocation and Reading and not Writing then
-		local MouseLocation = UserInputService:GetMouseLocation()
-		--MainCursor.Position = 
+		-- bullshit
 	end
 end))
 
@@ -1297,12 +1772,12 @@ end))
 -- Labels
 Insert(Configuration.Connections, RunService.RenderStepped:Connect(function()
     if ReplayFile then
-        CurrentReplayFile.Text = "Current Replay File: " .. tostring(ReplayFile)
+        CurrentReplayFile.Text = "Current replay file: " .. tostring(ReplayFile)
     else
-        CurrentReplayFile.Text = "Current Replay File: None"
+        CurrentReplayFile.Text = "Current replay file: n/a"
     end
-    CurrentFrameIndex.Text = "Current Frame index: " .. tostring(Index)
-    CurrentZoomValue.Text = "Current Zoom value: " .. Floor(Utilities.CameraModule.GetZoom() * 100) / 100
+    CurrentFrameIndex.Text = "Current frame index: " .. tostring(Index)
+    CurrentZoomValue.Text = "Current zoom value: " .. Floor(Utilities.CameraModule.GetZoom() * 100) / 100
 end))
 
 --
@@ -1311,6 +1786,12 @@ LocalPlayer.CharacterAdded:Connect(function(char)
     HumanoidRootPart = char:WaitForChild("HumanoidRootPart")
     Humanoid = char:WaitForChild("Humanoid")
 end)
+
+
+
+
+
+
 
 --
 
