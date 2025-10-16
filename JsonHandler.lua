@@ -1,4 +1,3 @@
--- // Made by Nymera
 local Json = {}
 Json.__index = Json
 Json.ClassName = "Json"
