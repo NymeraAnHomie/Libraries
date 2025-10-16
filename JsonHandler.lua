@@ -265,5 +265,3 @@ end
 function Json.Decode(Str)
     return DeserializeValue(Json.Parse(Str))
 end
-
-return Json
