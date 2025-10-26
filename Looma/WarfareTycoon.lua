@@ -2,7 +2,7 @@ local function LPH_NO_VIRTUALIZE(code)
     return code
 end
 LPH_JIT_MAX = LPH_NO_VIRTUALIZE
-
+-- fun fact this source was 1year ago when i was an phantom force cheat dev lol
 local devMode = true
 local folderName = "Looma"
 local callbackList = {}
