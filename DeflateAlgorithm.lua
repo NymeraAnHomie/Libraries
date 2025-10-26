@@ -1,7 +1,7 @@
 local Deflate = {}
 Deflate.Class = "ModuleScript"
 Deflate.__index = Deflate
-
+-- this is outdated just check tas ver
 local function Split(String, Separator)
     local Result = {}
     for Part in String:gmatch("([^" .. Separator .. "]+)") do
