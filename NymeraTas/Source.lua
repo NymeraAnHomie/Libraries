@@ -74,7 +74,7 @@ if not bit then
 
     local function rshift(x, n)
         x = to32(x)
-        return math.floor(x / 2^n) % 2^32
+        return Floor(x / 2^n) % 2^32
     end
 
     local function lshift(x, n)
@@ -90,8 +90,8 @@ if not bit then
             if (a % 2 == 1) and (b % 2 == 1) then
                 r = r + bitval
             end
-            a = math.floor(a / 2)
-            b = math.floor(b / 2)
+            a = Floor(a / 2)
+            b = Floor(b / 2)
             bitval = bitval * 2
         end
         return r
@@ -105,8 +105,8 @@ if not bit then
             if (a % 2 == 1) or (b % 2 == 1) then
                 r = r + bitval
             end
-            a = math.floor(a / 2)
-            b = math.floor(b / 2)
+            a = Floor(a / 2)
+            b = Floor(b / 2)
             bitval = bitval * 2
         end
         return r
@@ -120,8 +120,8 @@ if not bit then
             if (a % 2) ~= (b % 2) then
                 r = r + bitval
             end
-            a = math.floor(a / 2)
-            b = math.floor(b / 2)
+            a = Floor(a / 2)
+            b = Floor(b / 2)
             bitval = bitval * 2
         end
         return r
@@ -183,6 +183,12 @@ local Insert = table.insert
 local Find = table.find
 local Remove = table.remove
 local Concat = table.concat
+local Unpack = table.unpack
+
+local Format = string.format
+local Char = string.char
+local Gmatch = string.gmatch
+local Rep = string.rep
 --
 
 local Players = game:GetService("Players")
@@ -243,7 +249,7 @@ local function EscapeString(Value)
             ['\r'] = '\\r',
             ['\t'] = '\\t',
         }
-        return Map[Char] or string.format("\\u%04x", Char:byte())
+        return Map[Char] or Format("\\u%04x", Char:byte())
     end) .. '"'
 end
 
@@ -277,19 +283,19 @@ local function SerializeValue(Value, Stack)
 
         if IsArray then
             for i = 1, #Value do
-                table.insert(Parts, SerializeValue(Value[i], Stack))
+                Insert(Parts, SerializeValue(Value[i], Stack))
             end
             Stack[Value] = nil
-            return "[" .. table.concat(Parts, ",") .. "]"
+            return "[" .. Concat(Parts, ",") .. "]"
         else
             for K, V in pairs(Value) do
                 if type(K) ~= "string" then
                     error("JSON object keys must be strings")
                 end
-                table.insert(Parts, EscapeString(K) .. ":" .. SerializeValue(V, Stack))
+                Insert(Parts, EscapeString(K) .. ":" .. SerializeValue(V, Stack))
             end
             Stack[Value] = nil
-            return "{" .. table.concat(Parts, ",") .. "}"
+            return "{" .. Concat(Parts, ",") .. "}"
         end
     else
         error("Unsupported type: " .. TypeOfValue)
@@ -300,11 +306,11 @@ local function DeserializeValue(Value)
     if type(Value) ~= "table" then return Value end
 
     if Value.__type == "Vector3" then
-        return Vector3.new(Value.X, Value.Y, Value.Z)
+        return Vec3(Value.X, Value.Y, Value.Z)
     elseif Value.__type == "Vector2" then
-        return Vector2.new(Value.X, Value.Y)
+        return Vec2(Value.X, Value.Y)
     elseif Value.__type == "CFrame" then
-        return CFrame.new(unpack(Value.Components))
+        return Cfr(Unpack(Value.Components))
     else
         local NewTable = {}
         for K, V in pairs(Value) do
@@ -315,15 +321,14 @@ local function DeserializeValue(Value)
 end
 
 local function CodepointToUtf8(N)
-    local F = math.floor
     if N <= 0x7f then
-        return string.char(N)
+        return Char(N)
     elseif N <= 0x7ff then
-        return string.char(F(N / 64) + 192, N % 64 + 128)
+        return Char(Floor(N / 64) + 192, N % 64 + 128)
     elseif N <= 0xffff then
-        return string.char(F(N / 4096) + 224, F(N % 4096 / 64) + 128, N % 64 + 128)
+        return Char(Floor(N / 4096) + 224, Floor(N % 4096 / 64) + 128, N % 64 + 128)
     elseif N <= 0x10ffff then
-        return string.char(F(N / 262144) + 240, F(N % 262144 / 4096) + 128, F(N % 4096 / 64) + 128, N % 64 + 128)
+        return Char(Floor(N / 262144) + 240, Floor(N % 262144 / 4096) + 128, Floor(N % 4096 / 64) + 128, N % 64 + 128)
     end
     error("Invalid Unicode codepoint")
 end
@@ -351,7 +356,7 @@ local function ParseString(Str, Idx)
     while I <= #Str do
         local C = Str:sub(I,I)
         if C == '"' then
-            return table.concat(Res), I + 1
+            return Concat(Res), I + 1
         elseif C == "\\" then
             I = I + 1
             local NextChar = Str:sub(I,I)
@@ -433,26 +438,26 @@ end
 local function PrettyEncode(value, indent, level)
     indent = indent or 2
     level = level or 0
-    local spacing = string.rep(" ", level * indent)
+    local spacing = Rep(" ", level * indent)
 
     if type(value) == "table" then
         local isArray = (#value > 0)
         local parts = {}
         if isArray then
             for i, v in ipairs(value) do
-                table.insert(parts, PrettyEncode(v, indent, level + 1))
+                Insert(parts, PrettyEncode(v, indent, level + 1))
             end
-            return "[\n" .. spacing .. string.rep(" ", indent) ..
-                table.concat(parts, ",\n" .. spacing .. string.rep(" ", indent)) ..
+            return "[\n" .. spacing .. Rep(" ", indent) ..
+                Concat(parts, ",\n" .. spacing .. Rep(" ", indent)) ..
                 "\n" .. spacing .. "]"
         else
             for k, v in pairs(value) do
-                table.insert(parts,
-                    spacing .. string.rep(" ", indent) ..
+                Insert(parts,
+                    spacing .. Rep(" ", indent) ..
                     EscapeString(k) .. ": " .. PrettyEncode(v, indent, level + 1))
             end
             return "{\n" ..
-                table.concat(parts, ",\n") ..
+                Concat(parts, ",\n") ..
                 "\n" .. spacing .. "}"
         end
     elseif type(value) == "string" then
@@ -611,15 +616,15 @@ end
 local function PackU32BE(Number)
     local Bytes = {}
     for i = 3, 0, -1 do
-        Bytes[#Bytes + 1] = string.char(bit.band(bit.rshift(Number, i * 8), 0xFF))
+        Bytes[#Bytes + 1] = Char(bit.band(bit.rshift(Number, i * 8), 0xFF))
     end
-    return table.concat(Bytes)
+    return Concat(Bytes)
 end
 
 local function PackU16LE(Number)
     local Lo = Number % 256
-    local Hi = math.floor(Number / 256) % 256
-    return string.char(Lo, Hi)
+    local Hi = Floor(Number / 256) % 256
+    return Char(Lo, Hi)
 end
 
 local function UnpackU16LE(String, Pos)
@@ -633,11 +638,11 @@ local function DeflateUncompressedBlock(Data)
     local Length = #Data
     if Length <= 0xFFFF then
         local LenLo = Length % 256
-        local LenHi = math.floor(Length / 256)
+        local LenHi = Floor(Length / 256)
         local NLen = 0xFFFF - Length
         local NLenLo = NLen % 256
-        local NLenHi = math.floor(NLen / 256)
-        return string.char(1, LenLo, LenHi, NLenLo, NLenHi) .. Data
+        local NLenHi = Floor(NLen / 256)
+        return Char(1, LenLo, LenHi, NLenLo, NLenHi) .. Data
     end
 
     local Output, Index = {}, 1
@@ -647,14 +652,14 @@ local function DeflateUncompressedBlock(Data)
         local BFinal = Last and 1 or 0
         local CLen = #Chunk
         local CLenLo = CLen % 256
-        local CLenHi = math.floor(CLen / 256)
+        local CLenHi = Floor(CLen / 256)
         local NCLen = 0xFFFF - CLen
         local NCLenLo = NCLen % 256
-        local NCLenHi = math.floor(NCLen / 256)
-        Output[#Output + 1] = string.char(BFinal, CLenLo, CLenHi, NCLenLo, NCLenHi) .. Chunk
+        local NCLenHi = Floor(NCLen / 256)
+        Output[#Output + 1] = Char(BFinal, CLenLo, CLenHi, NCLenLo, NCLenHi) .. Chunk
         Index = Index + 65535
     end
-    return table.concat(Output)
+    return Concat(Output)
 end
 
 local function ZlibWrapUncompressed(Data)
@@ -706,7 +711,7 @@ local function ZlibUnwrapUncompressed(Data)
         )
     end
 
-    local Output = table.concat(OutputChunks)
+    local Output = Concat(OutputChunks)
     if ExpectedAdler ~= 0 and Adler32(Output) ~= ExpectedAdler then
         error("Adler32 checksum mismatch")
     end
@@ -729,9 +734,9 @@ local function Base64EncodeLua(Data)
     while i <= Length - 2 do
         local A, B, C = Data:byte(i, i + 2)
         local N = A * 65536 + B * 256 + C
-        local C1 = math.floor(N / 262144) % 64 + 1
-        local C2 = math.floor(N / 4096) % 64 + 1
-        local C3 = math.floor(N / 64) % 64 + 1
+        local C1 = Floor(N / 262144) % 64 + 1
+        local C2 = Floor(N / 4096) % 64 + 1
+        local C3 = Floor(N / 64) % 64 + 1
         local C4 = N % 64 + 1
         Result[#Result + 1] = Base64Chars:sub(C1, C1)
             .. Base64Chars:sub(C2, C2)
@@ -744,24 +749,24 @@ local function Base64EncodeLua(Data)
     if Rem == 1 then
         local A = Data:byte(i)
         local N = A * 65536
-        local C1 = math.floor(N / 262144) % 64 + 1
-        local C2 = math.floor(N / 4096) % 64 + 1
+        local C1 = Floor(N / 262144) % 64 + 1
+        local C2 = Floor(N / 4096) % 64 + 1
         Result[#Result + 1] = Base64Chars:sub(C1, C1)
             .. Base64Chars:sub(C2, C2)
             .. "=="
     elseif Rem == 2 then
         local A, B = Data:byte(i, i + 1)
         local N = A * 65536 + B * 256
-        local C1 = math.floor(N / 262144) % 64 + 1
-        local C2 = math.floor(N / 4096) % 64 + 1
-        local C3 = math.floor(N / 64) % 64 + 1
+        local C1 = Floor(N / 262144) % 64 + 1
+        local C2 = Floor(N / 4096) % 64 + 1
+        local C3 = Floor(N / 64) % 64 + 1
         Result[#Result + 1] = Base64Chars:sub(C1, C1)
             .. Base64Chars:sub(C2, C2)
             .. Base64Chars:sub(C3, C3)
             .. "="
     end
 
-    return table.concat(Result)
+    return Concat(Result)
 end
 
 local function Base64DecodeLua(Str)
@@ -778,16 +783,16 @@ local function Base64DecodeLua(Str)
             Bits = Bits + 6
             while Bits >= 8 do
                 Bits = Bits - 8
-                local Byte = math.floor(Buffer / (2 ^ Bits)) % 256
+                local Byte = Floor(Buffer / (2 ^ Bits)) % 256
                 if type(Byte) == "number" and Byte >= 0 and Byte <= 255 then
-                    Output[#Output + 1] = string.char(Byte)
+                    Output[#Output + 1] = Char(Byte)
                 else
-                    return table.concat(Output)
+                    return Concat(Output)
                 end
             end
         end
     end
-    return table.concat(Output)
+    return Concat(Output)
 end
 
 local function FindBase64Functions()
@@ -920,7 +925,7 @@ do
 		        if type(args) ~= "table" then
 		            fn(args)  -- call with single value
 		        else
-		            fn(table.unpack(args))  -- call with table values
+		            fn(Unpack(args))  -- call with table values
 		        end
 		    end)
 		end
@@ -929,7 +934,7 @@ do
 	        local key = self.Bindable.Event:Wait()
 	        local args = self.ArgMap[key]
 	        self.ArgMap[key] = nil
-	        return table.unpack(args)
+	        return Unpack(args)
 	    end
 	
 	    function Signal:Destroy()
@@ -971,8 +976,8 @@ do
 	            return Signal.Create()
 	        end
 	        local segments = {}
-	        for segment in string.gmatch(name, "[^%.]+") do
-	            table.insert(segments, segment)
+	        for segment in gmatch(name, "[^%.]+") do
+	            Insert(segments, segment)
 	        end
 	        local cursor = Registry.Signals
 	        for i = 1, #segments do
@@ -991,8 +996,8 @@ do
 	
 	    function Signal.Get(name)
 	        local segments = {}
-	        for segment in string.gmatch(name, "[^%.]+") do
-	            table.insert(segments, segment)
+	        for segment in Gmatch(name, "[^%.]+") do
+	            Insert(segments, segment)
 	        end
 	        local cursor = Registry.Signals
 	        for i = 1, #segments do
@@ -1204,7 +1209,7 @@ do
 		function Tasability.StepFrame(Direction)
             if #Frames == 0 then return end
 
-            Index = math.clamp(Index + Direction, 1, #Frames)
+            Index = Clamp(Index + Direction, 1, #Frames)
             local Frame = Frames[Index]
             if not Frame then return end
 
@@ -1230,7 +1235,7 @@ do
 		    local Files = {}
 		    for _, File in ipairs(listfiles(FolderPath)) do
 		        local FileName = File:match("[^/\\]+$"):gsub("%.json$", "")
-		        table.insert(Files, FileName)
+		       Insert(Files, FileName)
 		    end
 		    return Files
 		end
