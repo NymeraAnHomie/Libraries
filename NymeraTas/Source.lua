@@ -2,6 +2,7 @@
     TODO:
     [!] Use Humanoid States to do the Animation or use an custom Animation?
     [!] Add Shiftlock value for reading and writing
+    [!] Add Cursor
     [?] Bypass some anticheat
 ]]
 
