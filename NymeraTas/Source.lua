@@ -2,6 +2,7 @@
     TODO:
     [!] Add Shiftlock value for reading and writing
     [!] Add Cursor
+    [!] Add Ahk/Real Input so u can idk nohboard
     [?] Use Humanoid States to do the Animation or use an custom Animation?
     [?] Bypass some anticheat
 ]]
