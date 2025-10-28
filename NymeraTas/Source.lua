@@ -1,31 +1,22 @@
---[[
-    TODO:
-    [!] Add Shiftlock value for reading and writing
-    [!] Add Cursor
-    [!] Add Ahk/Real Input so u can idk nohboard
-    [?] Use Humanoid States to do the Animation or use an custom Animation?
-    [?] Bypass some anticheat
-]]
-
 local Version = "".."v1.2"..""
 local Utilities = {} -- Ignore
 local Frames = {} -- Ignore
 
 -- If you had the tiniest bit of lua yk how to use this table
-local Configuration = {
+local Library = {
 	MenuBind = "M",
 	PlaybackInputs = true,
-	PlaybackMouseLocation = true,
+	PlaybackMouseLocation = true, -- this will create an fake mouse/cursor
 	BypassAntiCheat = false,
 	PrettyFormating = false, -- stack limit sim
 	DeflateAlgorithm = {
 		Enabled = false,
 		Base64 = false,
-        -- THIS also  might  BREAK/CORRUPT youre tas at the reward of getting less data size so idk
+        -- THIS also might BREAK/CORRUPT youre tas at the reward of getting less data size so idk
 		-- i highly recommend to use auto or executor if one error in the console
 		-- then switch an diff mode
 		Mode = "auto", -- auto;executor;zlib_uncompressed
-	},
+	};
 	Keybind = {
 		Frozen = "E",
 	    Wipe = "Delete",
@@ -36,29 +27,31 @@ local Configuration = {
 	    StepBackward = "N",
 	    StepForward = "B",
 	    SeekBackward = "C",
-	    SeekForward = "V"
-	},
-	InputBlacklist = {"E", "N", "B", "C", "V"},
+	    SeekForward = "V",
+	};
+	InputBlacklist = {"E", "N", "B", "C", "V"};
 	Cursors = {
 		["ArrowFarCursor"] = { -- Default
-			Icon = "rbxasset://textures/Cursors/KeyboardMouse/ArrowFarCursor.png",
+			Image = "rbxasset://textures/Cursors/KeyboardMouse/ArrowFarCursor.png",
 			Size = UDim2.fromOffset(64, 64),
 			Offset = Vector2.new(-16, 60),
-		},
+		};
 		["MouseLockedCursor"] = { -- Shiftlock
-			Icon = "rbxasset://textures/MouseLockedCursor.png",
+			Image = "rbxasset://textures/MouseLockedCursor.png",
 			Size = UDim2.fromOffset(32, 32),
 			Offset = Vector2.new(-16, 20),
-		},
-	},
+		};
+	};
 	
 	--
 	Directory = "NymeraTas",
 	Folders = {"/Records", "/Connections"},
 	Ignore,
-	Instances = {},
-	Drawings = {},
-	Connections = {},
+	Holder,
+	Cursor,
+	Instances = {};
+	Drawings = {};
+	Connections = {};
 }
 
 
@@ -68,75 +61,12 @@ local Configuration = {
 
 
 
+
+
+
+
+
 local bit = bit32 or bit -- w api
-
-if not bit then
-    local function to32(x) return x % 2^32 end
-
-    local function rshift(x, n)
-        x = to32(x)
-        return Floor(x / 2^n) % 2^32
-    end
-
-    local function lshift(x, n)
-        x = to32(x)
-        return to32(x * 2^n)
-    end
-
-    local function band(a, b)
-        a = to32(a); b = to32(b)
-        local r = 0
-        local bitval = 1
-        for i = 0, 31 do
-            if (a % 2 == 1) and (b % 2 == 1) then
-                r = r + bitval
-            end
-            a = Floor(a / 2)
-            b = Floor(b / 2)
-            bitval = bitval * 2
-        end
-        return r
-    end
-
-    local function bor(a, b)
-        a = to32(a); b = to32(b)
-        local r = 0
-        local bitval = 1
-        for i = 0, 31 do
-            if (a % 2 == 1) or (b % 2 == 1) then
-                r = r + bitval
-            end
-            a = Floor(a / 2)
-            b = Floor(b / 2)
-            bitval = bitval * 2
-        end
-        return r
-    end
-
-    local function bxor(a, b)
-        a = to32(a); b = to32(b)
-        local r = 0
-        local bitval = 1
-        for i = 0, 31 do
-            if (a % 2) ~= (b % 2) then
-                r = r + bitval
-            end
-            a = Floor(a / 2)
-            b = Floor(b / 2)
-            bitval = bitval * 2
-        end
-        return r
-    end
-
-    bit = {
-        rshift = rshift,
-        lshift = lshift,
-        band = band,
-        bor = bor,
-        bxor = bxor,
-        bnot = function(x) return to32(0xFFFFFFFF - (x % 2^32)) end
-    }
-end
 
 -- Variables
 -- Data Types
@@ -227,9 +157,81 @@ local HumanoidState = ""
 local ReplayFile = "None"
 local ReplayName = "None"
 
+local CursorHolder
+local Cursor
+
+--
+if not bit then
+    local function to32(x) return x % 2^32 end
+
+    local function rshift(x, n)
+        x = to32(x)
+        return Floor(x / 2^n) % 2^32
+    end
+
+    local function lshift(x, n)
+        x = to32(x)
+        return to32(x * 2^n)
+    end
+
+    local function band(a, b)
+        a = to32(a); b = to32(b)
+        local r = 0
+        local bitval = 1
+        for i = 0, 31 do
+            if (a % 2 == 1) and (b % 2 == 1) then
+                r = r + bitval
+            end
+            a = Floor(a / 2)
+            b = Floor(b / 2)
+            bitval = bitval * 2
+        end
+        return r
+    end
+
+    local function bor(a, b)
+        a = to32(a); b = to32(b)
+        local r = 0
+        local bitval = 1
+        for i = 0, 31 do
+            if (a % 2 == 1) or (b % 2 == 1) then
+                r = r + bitval
+            end
+            a = Floor(a / 2)
+            b = Floor(b / 2)
+            bitval = bitval * 2
+        end
+        return r
+    end
+
+    local function bxor(a, b)
+        a = to32(a); b = to32(b)
+        local r = 0
+        local bitval = 1
+        for i = 0, 31 do
+            if (a % 2) ~= (b % 2) then
+                r = r + bitval
+            end
+            a = Floor(a / 2)
+            b = Floor(b / 2)
+            bitval = bitval * 2
+        end
+        return r
+    end
+
+    bit = {
+        rshift = rshift,
+        lshift = lshift,
+        band = band,
+        bor = bor,
+        bxor = bxor,
+        bnot = function(x) return to32(0xFFFFFFFF - (x % 2^32)) end
+    }
+end
+
 -- File Management
-for _, v in ipairs(Configuration.Folders) do
-    local path = Configuration.Directory .. v
+for _, v in ipairs(Library.Folders) do
+    local path = Library.Directory .. v
     if not isfolder(path) then
         makefolder(path)
     end
@@ -1035,11 +1037,12 @@ do
 		return captured
 	end
     
-    -- this is so frikkin tuff
+    -- cool
     Utilities.Base = {
-    	AbsoluteSize = Camera.ViewportSize,
-        PropertyChanged = Utilities.Signal.New(),
-        ChildUpdated = Utilities.Signal.New()
+		AbsolutePosition = Vec2(0, 0),
+		AbsoluteSize = Camera.ViewportSize,
+		PropertyChanged = Utilities.Signal.New(),
+		ChildUpdated = Utilities.Signal.New()
 	}
 	
     Utilities.BlockMouseEvents = false
@@ -1132,6 +1135,11 @@ do
 		elseif State == Enum.UserInputState.End then
 			Utilities.Activations.Holding:Fire(nil, false, "Touch")
 		end
+	end)
+	
+	Camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
+		Utilities.Base.AbsoluteSize = Camera.ViewportSize
+		Utilities.Base.PropertyChanged:Fire("AbsoluteSize", Camera.ViewportSize)
 	end)
 	
 	-- now this is real pro
@@ -1232,7 +1240,7 @@ do
         end
 	
 		function Tasability.GetReplayFiles()
-		    local FolderPath = Configuration.Directory .. Configuration.Folders[1]
+		    local FolderPath = Library.Directory .. Library.Folders[1]
 		    local Files = {}
 		    for _, File in ipairs(listfiles(FolderPath)) do
 		        local FileName = File:match("[^/\\]+$"):gsub("%.json$", "")
@@ -1242,7 +1250,7 @@ do
 		end
 	
 		function Tasability.CreateFile(Name)
-		    local FolderPath = Configuration.Directory .. Configuration.Folders[1]
+		    local FolderPath = Library.Directory .. Library.Folders[1]
 		    local FilePath = FolderPath .. "/" .. Name .. ".json"
 		
 		    if isfile(FilePath) then
@@ -1260,7 +1268,7 @@ do
                 return
             end
 
-		    local FolderPath = Configuration.Directory .. Configuration.Folders[1]
+		    local FolderPath = Library.Directory .. Library.Folders[1]
 		    local FilePath = FolderPath .. "/" .. Name .. ".json"
 		
 		    if not isfile(FilePath) then
@@ -1274,7 +1282,7 @@ do
 		end
 	
 		function Tasability.SaveFile(Name)
-		    local FolderPath = Configuration.Directory .. Configuration.Folders[1]
+		    local FolderPath = Library.Directory .. Library.Folders[1]
 		    local FilePath = FolderPath .. "/" .. Name .. ".json"
 		
 		    if not isfile(FilePath) then
@@ -1284,16 +1292,16 @@ do
 		
 		    local Success, Encoded = pcall(function()
 		        local jsonStr
-		        if Configuration.PrettyFormatting then
+		        if Library.PrettyFormatting then
 		            jsonStr = Json.PrettyEncode(Frames, 4)
 		        else
 		            jsonStr = Json.Encode(Frames)
 		        end
 		
-		        if Configuration.DeflateAlgorithm and Configuration.DeflateAlgorithm.Enabled then
+		        if Library.DeflateAlgorithm and Library.DeflateAlgorithm.Enabled then
 		            return Deflate.Compress(jsonStr, {
-		                mode = Configuration.DeflateAlgorithm.Mode or "auto",
-		                base64 = Configuration.DeflateAlgorithm.Base64 or false
+		                mode = Library.DeflateAlgorithm.Mode or "auto",
+		                base64 = Library.DeflateAlgorithm.Base64 or false
 		            })
 		        else
 		            return jsonStr
@@ -1306,12 +1314,12 @@ do
 		    end
 		
 		    writefile(FilePath, Encoded)
-		    print("Saved TAS file:", FilePath, " (compressed =", tostring(Configuration.DeflateAlgorithm and Configuration.DeflateAlgorithm.enabled), ")")
+		    print("Saved TAS file:", FilePath, " (compressed =", tostring(Library.DeflateAlgorithm and Library.DeflateAlgorithm.enabled), ")")
 		    return true
 		end
 		
 		function Tasability.LoadFile(Name)
-		    local FolderPath = Configuration.Directory .. Configuration.Folders[1]
+		    local FolderPath = Library.Directory .. Library.Folders[1]
 		    local FilePath = FolderPath .. "/" .. Name .. ".json"
 		
 		    if not isfile(FilePath) then
@@ -1323,10 +1331,10 @@ do
 		    local DecodedData
 		
 		    local Success, Result = pcall(function()
-		        if Configuration.DeflateAlgorithm and Configuration.DeflateAlgorithm.Enabled then
+		        if Library.DeflateAlgorithm and Library.DeflateAlgorithm.Enabled then
 		            return Deflate.Decompress(Data, {
-		                mode = Configuration.DeflateAlgorithm.Mode or "auto",
-		                base64 = Configuration.DeflateAlgorithm.Base64 or false
+		                mode = Library.DeflateAlgorithm.Mode or "auto",
+		                base64 = Library.DeflateAlgorithm.Base64 or false
 		            })
 		        else
 		            return Data
@@ -1345,11 +1353,30 @@ do
 		    end
 		
 		    Frames = Parsed
-		    print("[yippe]: Loaded TAS file:", FilePath, " (compressed =", tostring(Configuration.DeflateAlgorithm and Configuration.DeflateAlgorithm.enabled), ")")
+		    print("Loaded TAS file:", FilePath, " (compressed =", tostring(Library.DeflateAlgorithm and Library.DeflateAlgorithm.enabled), ")")
 		    return true
 		end
 		--
 		Utilities.Tasability = Tasability -- set to global utilities for further use
+    end
+    
+    -- C++ Functions
+    do
+	    local KeySignal = {}
+	
+		function KeySignal:IsInstalled()
+			return isfolder(Library.Directory .. Library.Folders[2])
+		end
+	
+		function KeySignal:Send(Signal)
+			if KeySignal:IsInstalled() then
+				writefile(Library.Directory .. Library.Folders[2] .. "request.txt", Signal)
+			else
+				print("Request file/folder that sent inputs wasn't found??")
+			end
+		end
+	
+		Utilities.KeySignals = KeySignals -- set to global utilities for further use
     end
     
     -- Camera Module
@@ -1362,15 +1389,23 @@ do
 		
 		-- Closure Scanner
 		do
-			for _, Obj in next, getgc(true) do
-			    if type(Obj) == "table" then
-			        if rawget(Obj, "Update") and rawget(Obj, "SetZoomParameters") then
-			            CameraModule.ZoomController = Obj
-			        elseif rawget(Obj, "GetIsMouseLocked") and rawget(Obj, "EnableMouseLock") then
-			            CameraModule.MouseLockController = Obj
-			        end
-			    end
+			local ZoomCount = 0
+			local MouseLockCount = 0
+		
+			for _, Object in next, getgc(true) do
+				if type(Object) == "table" then
+					if rawget(Object, "Update") and rawget(Object, "SetZoomParameters") then
+						CameraModule.ZoomController = Object
+						ZoomCount += 1
+					elseif rawget(Object, "GetIsMouseLocked") and rawget(Object, "EnableMouseLock") then
+						CameraModule.MouseLockController = Object
+						MouseLockCount += 1
+					end
+				end
 			end
+		
+			print(tostring(ZoomCount).." ZoomController"..(ZoomCount == 1 and "" or "s")..", "
+				..tostring(MouseLockCount).." MouseLockController"..(MouseLockCount == 1 and "" or "s"))
 		end
 		
 		-- Zoom Controller
@@ -1404,11 +1439,61 @@ do
 		
 		-- ShiftLock
 		function CameraModule.GetShiftLock()
-		    -- idfk how to do this :v: :sob:
+		    local MouseLockController = CameraModule.MouseLockController
+		    if not MouseLockController then
+		        return false
+		    end
+		
+		    if type(MouseLockController.GetIsMouseLocked) == "function" then
+		        local ok, v = pcall(function() return MouseLockController:GetIsMouseLocked() end)
+		        if ok then
+		            return v
+		        end
+		    end
+		
+		    if type(MouseLockController.IsMouseLocked) == "function" then
+		        local ok, v = pcall(function() return MouseLockController:IsMouseLocked() end)
+		        if ok then
+		            return v
+		        end
+		    end
+		
+		    if type(MouseLockController.isMouseLocked) == "boolean" then
+		        return MouseLockController.isMouseLocked
+		    end
+		
+		    return false
 		end
 		
 		function CameraModule.SetShiftLock(Value)
-		    
+		    local MouseLockController = CameraModule.MouseLockController
+		    if not MouseLockController then
+		        return
+		    end
+		
+		    if type(MouseLockController.EnableMouseLock) == "function" then
+		        pcall(function() MouseLockController:EnableMouseLock(true) end)
+		    end
+		
+		    local Current = CameraModule.GetShiftLock()
+		
+		    if Current == Value then
+		        return
+		    end
+		
+		    if type(MouseLockController.DoMouseLockSwitch) == "function" then
+		        pcall(function() MouseLockController:DoMouseLockSwitch("MouseLockSwitchAction", Enum.UserInputState.Begin, game) end)
+		        return
+		    end
+		
+		    if type(MouseLockController.OnMouseLockToggled) == "function" then
+		        pcall(function() MouseLockController:OnMouseLockToggled() end)
+		        return
+		    end
+		
+		    if type(MouseLockController.isMouseLocked) == "boolean" then
+		        pcall(function() MouseLockController.isMouseLocked = Value end)
+		    end
 		end
 		--
 		Utilities.CameraModule = CameraModule -- set to global utilities for further use
@@ -1417,7 +1502,7 @@ do
 end
 --
 
--- Helper Functions
+-- Functions
 local function ToKeyCode(Key)
     if typeof(Key) == "EnumItem" and Key.EnumType == Enum.KeyCode then
         return Key
@@ -1429,7 +1514,7 @@ local function ToKeyCode(Key)
                 return EnumKey
             end
         end
-        warn("dumbass could not find EnumKey for string:", Key)
+        warn("bro couldn't not find enumkey for string:", Key)
     end
     return nil
 end
@@ -1622,17 +1707,17 @@ end}
 
 local Main = Window:CollapsingHeader{Title = "Main"}
 Main:Separator{Text = "Main"}
-Main:Checkbox{Label = "Playback inputs",Value = Configuration.PlaybackInputs, Callback = function(self, Value)
-    Configuration.PlaybackInputs = Value
+Main:Checkbox{Label = "Playback inputs",Value = Library.PlaybackInputs, Callback = function(self, Value)
+    Library.PlaybackInputs = Value
 end}
-Main:Checkbox{Label = "Playback mouse location", Value = Configuration.PlaybackMouseLocation, Callback = function(self, Value)
-    Configuration.PlaybackMouseLocation = Value
+Main:Checkbox{Label = "Playback mouse location", Value = Library.PlaybackMouseLocation, Callback = function(self, Value)
+    Library.PlaybackMouseLocation = Value
 end}
-Main:Checkbox{Label = "Bypass anti cheat", Value = Configuration.BypassAntiCheat, Callback = function(self, Value)
-    Configuration.BypassAntiCheat = Value
+Main:Checkbox{Label = "Bypass anti cheat", Value = Library.BypassAntiCheat, Callback = function(self, Value)
+    Library.BypassAntiCheat = Value
 end}
-Main:Checkbox{Label = "Pretty formating", Value = Configuration.PrettyFormating, Callback = function(self, Value)
-    Configuration.PrettyFormating = Value -- idgaf if this stack limit 🤑
+Main:Checkbox{Label = "Pretty formating", Value = Library.PrettyFormating, Callback = function(self, Value)
+    Library.PrettyFormating = Value -- idgaf if this stack limit 🤑
 end}
 Main:Button{Text = "Jump/edit to last frame", Callback = function()
     Utilities.Tasability.SetFrame(#Frames)
@@ -1640,14 +1725,14 @@ end}
 
 
 Main:Separator{Text = "Deflate algorithm."}
-Main:Checkbox{Label = "Enabled", Value = Configuration.DeflateAlgorithm.Enabled, Callback = function(self, Value)
-    Configuration.DeflateAlgorithm.Enabled = Value
+Main:Checkbox{Label = "Enabled", Value = Library.DeflateAlgorithm.Enabled, Callback = function(self, Value)
+    Library.DeflateAlgorithm.Enabled = Value
 end}
-Main:Checkbox{Label = "Base64", Value = Configuration.DeflateAlgorithm.Base64, Callback = function(self, Value)
-    Configuration.DeflateAlgorithm.Base64 = Value
+Main:Checkbox{Label = "Base64", Value = Library.DeflateAlgorithm.Base64, Callback = function(self, Value)
+    Library.DeflateAlgorithm.Base64 = Value
 end}
-Main:Combo{Label = "Mode", Selected = Configuration.DeflateAlgorithm.Mode, Items = {"executor", "auto", "zlib_uncompressed"}, Callback = function(self)
-	Configuration.DeflateAlgorithm.Mode = Value
+Main:Combo{Label = "Mode", Selected = Library.DeflateAlgorithm.Mode, Items = {"executor", "auto", "zlib_uncompressed"}, Callback = function(self)
+	Library.DeflateAlgorithm.Mode = Value
 end}
 
 local Info = Window:CollapsingHeader{Title = "Info"}
@@ -1655,94 +1740,145 @@ local CurrentReplayFile = Info:Label{Text = "Current replay file: n/a"}
 local CurrentFrameIndex = Info:Label{Text = "Current frame index: n/a"}
 local CurrentZoomValue = Info:Label{Text = "Current zoom value: n/a"}
 
-local Keybind = Window:CollapsingHeader{Title = "Hotkeys"}
-Keybind:Separator{Text = "Menu Hotkeys."}
-Keybind:Keybind{Label = "Menu bind", Value = ToKeyCode(Configuration.MenuBind), Callback = function(self, KeyId)
-    Configuration.MenuBind = KeyId
+local Keybind = Window:CollapsingHeader{Title = "Hotkeys."}
+Keybind:Separator{Text = "Menu hotkeys"}
+Keybind:Keybind{Label = "Menu bind", Value = ToKeyCode(Library.MenuBind), Callback = function(self, KeyId)
+    Library.MenuBind = KeyId
 end}
-Keybind:Separator{Text = "Writing Hotkeys."}
-Keybind:Keybind{Label = "Step Backward", Value = ToKeyCode(Configuration.Keybind.StepBackward), Callback = function(self, KeyId)
-    Configuration.Keybind.StepBackward = KeyId
+Keybind:Separator{Text = "Writing hotkeys."}
+Keybind:Keybind{Label = "Step backward", Value = ToKeyCode(Library.Keybind.StepBackward), Callback = function(self, KeyId)
+    Library.Keybind.StepBackward = KeyId
 end}
-Keybind:Keybind{Label = "Step Forward", Value = ToKeyCode(Configuration.Keybind.StepForward), Callback = function(self, KeyId)
-    Configuration.Keybind.StepForward = KeyId
+Keybind:Keybind{Label = "Step forward", Value = ToKeyCode(Library.Keybind.StepForward), Callback = function(self, KeyId)
+    Library.Keybind.StepForward = KeyId
 end}
-Keybind:Keybind{Label = "Seek Backward", Value = ToKeyCode(Configuration.Keybind.SeekBackward), Callback = function(self, KeyId)
-    Configuration.Keybind.SeekBackward = KeyId
+Keybind:Keybind{Label = "Seek backward", Value = ToKeyCode(Library.Keybind.SeekBackward), Callback = function(self, KeyId)
+    Library.Keybind.SeekBackward = KeyId
 end}
-Keybind:Keybind{Label = "Seek Forward", Value = ToKeyCode(Configuration.Keybind.SeekForward), Callback = function(self, KeyId)
-    Configuration.Keybind.SeekForward = KeyId
+Keybind:Keybind{Label = "Seek forward", Value = ToKeyCode(Library.Keybind.SeekForward), Callback = function(self, KeyId)
+    Library.Keybind.SeekForward = KeyId
 end}
-Keybind:Keybind{Label = "Frozen", Value = ToKeyCode(Configuration.Keybind.Frozen), Callback = function(self, KeyId)
-    Configuration.Keybind.Frozen = KeyId
+Keybind:Keybind{Label = "Paused", Value = ToKeyCode(Library.Keybind.Paused), Callback = function(self, KeyId)
+    Library.Keybind.Paused = KeyId
 end}
-Keybind:Keybind{Label = "Wipe", Value = ToKeyCode(Configuration.Keybind.Wipe), Callback = function(self, KeyId)
-    Configuration.Keybind.Wipe = KeyId
+Keybind:Keybind{Label = "Frozen", Value = ToKeyCode(Library.Keybind.Frozen), Callback = function(self, KeyId)
+    Library.Keybind.Frozen = KeyId
 end}
-Keybind:Keybind{Label = "Spectate", Value = ToKeyCode(Configuration.Keybind.Spectate), Callback = function(self, KeyId)
-    Configuration.Keybind.Spectate = KeyId
+Keybind:Keybind{Label = "Wipe", Value = ToKeyCode(Library.Keybind.Wipe), Callback = function(self, KeyId)
+    Library.Keybind.Wipe = KeyId
 end}
-Keybind:Keybind{Label = "Create", Value = ToKeyCode(Configuration.Keybind.Create), Callback = function(self, KeyId)
-    Configuration.Keybind.Create = KeyId
+Keybind:Keybind{Label = "Spectate", Value = ToKeyCode(Library.Keybind.Spectate), Callback = function(self, KeyId)
+    Library.Keybind.Spectate = KeyId
 end}
-Keybind:Keybind{Label = "Test", Value = ToKeyCode(Configuration.Keybind.Test), Callback = function(self, KeyId)
-    Configuration.Keybind.Test = KeyId
+Keybind:Keybind{Label = "Create", Value = ToKeyCode(Library.Keybind.Create), Callback = function(self, KeyId)
+    Library.Keybind.Create = KeyId
 end}
+Keybind:Keybind{Label = "Test", Value = ToKeyCode(Library.Keybind.Test), Callback = function(self, KeyId)
+    Library.Keybind.Test = KeyId
+end}
+
+pcall(function() -- ac bypasses
+	local OldNameCall = nil
+	local OldSpawn
+	local SendRemote = ReplicatedStorage.DefaultChatSystemChatEvents.ChannelNameColorUpdated
+	
+	OldNameCall = hookmetamethod(game, "__namecall", function(Self, ...)
+		local NameCallMethod = getnamecallmethod()
+		
+		if not checkcaller() and Self == LocalPlayer and NameCallMethod == "Kick" then
+			return nil
+		end
+	end)
+	
+	OldSpawn = hookfunction(getrenv().spawn, function(...)
+		if not checkcaller() and (tostring(getcallingscript()) == "Animate" or tostring(getcallingscript()) == "RbxAnimateScript") then
+			return OldSpawn(function()
+				
+			end)
+		end
+		
+		return OldSpawn(...)
+	end)
+	
+	SendRemote:Destroy()
+	ReplicatedStorage.Remotes.Send:Destroy()
+end)
 
 --
-local CursorHolder = Utilities.Functions:Create("ScreenGui", {
-	Name = "okay",
+Library.Ignore = Utilities.Functions:Create("ScreenGui", {
+	Name = "\0",
 	DisplayOrder = 9999,
 	ZIndexBehavior = Enum.ZIndexBehavior.Global,
-	-- Do not use IgnoreGuiInset, since it break the offset no idea why...
-	Parent = gethui() -- hide from explorer cuz kys coregui detection
+	IgnoreGuiInset = true,
+	Parent = gethui()
 })
 
-local Cursor = Utilities.Functions:Create("ImageLabel", {
-	Name = "okay",
-	Parent = CursorHolder
+Library.Holder = Utilities.Functions:Create("ScreenGui", {
+	Name = "\0",
+	DisplayOrder = 9999,
+	ZIndexBehavior = Enum.ZIndexBehavior.Global,
+	IgnoreGuiInset = true,
+	Parent = gethui()
 })
+
+Library.Cursor = Utilities.Functions:Create("ImageLabel", {
+	Name = "okay",
+	BackgroundTransparency = 1,
+	ZIndex = 9999,
+	AnchorPoint = Vec2(0.5, 0.5), 
+	Parent = Library.Holder
+})
+
+local function SetCursor(CursorName)
+	local dat = Library.Cursors[CursorName]
+	Library.Cursor.Image = dat.Image
+	Library.Cursor.Size = dat.Size
+end
 
 -- Set up
 Utilities.KeyDown:Connect(function(KeyCode)
-    if KeyCode == ToKeyCode(Configuration.Keybind.Frozen) then
+    if KeyCode == ToKeyCode(Library.Keybind.Frozen) then
         Utilities.Tasability.ToggleFrozen()
 
-    elseif KeyCode == ToKeyCode(Configuration.Keybind.Wipe) then
+    elseif KeyCode == ToKeyCode(Library.Keybind.Wipe) then
         Utilities.Tasability.ClearAllFrames()
 
-    elseif KeyCode == ToKeyCode(Configuration.Keybind.Spectate) then
+    elseif KeyCode == ToKeyCode(Library.Keybind.Spectate) then
         Utilities.Tasability.SpectateMode()
 
-    elseif KeyCode == ToKeyCode(Configuration.Keybind.Create) then
+    elseif KeyCode == ToKeyCode(Library.Keybind.Create) then
         Utilities.Tasability.CreateMode()
 
-    elseif KeyCode == ToKeyCode(Configuration.Keybind.Test) then
+    elseif KeyCode == ToKeyCode(Library.Keybind.Test) then
         Utilities.Tasability.TestTasMode()
 
-    elseif KeyCode == ToKeyCode(Configuration.MenuBind) then
+    elseif KeyCode == ToKeyCode(Library.MenuBind) then
         Window:ToggleVisibility()
 
-    elseif KeyCode == ToKeyCode(Configuration.Keybind.StepBackward) then
+    elseif KeyCode == ToKeyCode(Library.Keybind.StepBackward) then
         Utilities.Tasability.StepFrame(-1)
 
-    elseif KeyCode == ToKeyCode(Configuration.Keybind.StepForward) then
+    elseif KeyCode == ToKeyCode(Library.Keybind.StepForward) then
         Utilities.Tasability.StepFrame(1)
 
-     elseif KeyCode == ToKeyCode(Configuration.Keybind.Paused) then
+     elseif KeyCode == ToKeyCode(Library.Keybind.Paused) then
         Paused = not Paused
+        
     end
 end)
 
+SetCursor("ArrowFarCursor")
+
 -- Mouse
-Insert(Configuration.Connections, RunService.RenderStepped:Connect(function()
-	if Configuration.PlaybackMouseLocation and Reading and not Writing then
-		-- bullshit
+Insert(Library.Connections, RunService.RenderStepped:Connect(function()
+	if Library.PlaybackMouseLocation and not Reading then
+		local MouseLocation = UserInputService:GetMouseLocation()
+		Library.Cursor.Position = DimOffset(MouseLocation.X, MouseLocation.Y)
 	end
 end))
 
 -- Reading
-Insert(Configuration.Connections, RunService.RenderStepped:Connect(function()
+Insert(Library.Connections, RunService.RenderStepped:Connect(function()
     if Reading and not Writing and not Paused then
 	    if not Character:FindFirstChild("HumanoidRootPart") then
 			RunService.Heartbeat:Wait()
@@ -1759,17 +1895,21 @@ Insert(Configuration.Connections, RunService.RenderStepped:Connect(function()
                 local AssemblyAngularVelocity = DeserializeValue(Frame[5])
                 local State = Frame[6]
                 local Zoom = Frame[7]
+                local Shiftlock = Frame[8]
+                local MouseLocation = DeserializeValue(Frame[9])
                 
                 HumanoidRootPart.CFrame = HumanoidRootPartCFrame
                 HumanoidRootPart.Velocity = Velocity
                 HumanoidRootPart.AssemblyLinearVelocity = AssemblyLinearVelocity
                 HumanoidRootPart.AssemblyAngularVelocity = AssemblyAngularVelocity
                 Camera.CFrame = CameraCFrame
+                Library.Cursor.Position = DimOffset(MouseLocation.X, MouseLocation.Y)
                 
                 Humanoid:ChangeState(Enum.HumanoidStateType[State])
                 Utilities.CameraModule.UpdateZoom(tonumber(Zoom)) -- tonumber useless but idaf 💔
+                Utilities.CameraModule.SetShiftLock(Shiftlock)
             end
-
+            
             Index = Index + 1
         else
             Index = 1
@@ -1779,7 +1919,7 @@ Insert(Configuration.Connections, RunService.RenderStepped:Connect(function()
 end))
 
 -- Writing
-Insert(Configuration.Connections, RunService.PreSimulation:Connect(function()
+Insert(Library.Connections, RunService.PreSimulation:Connect(function()
     if Writing and not Reading and not Frozen then
         local HumanoidRootPartCFrame = HumanoidRootPart.CFrame
         local CameraCFrame = Camera.CFrame
@@ -1788,15 +1928,19 @@ Insert(Configuration.Connections, RunService.PreSimulation:Connect(function()
         local AssemblyAngularVelocity = HumanoidRootPart.AssemblyAngularVelocity
         local State = Humanoid:GetState().Name
 		local Zoom = Utilities.CameraModule.GetZoom()
+		local Shiftlock = Utilities.CameraModule.GetShiftLock()
+		local MouseLocation = UserInputService:GetMouseLocation()
 		
         Insert(Frames, {
-            HumanoidRootPartCFrame,
-            CameraCFrame,
-            Velocity,
-            AssemblyLinearVelocity,
-            AssemblyAngularVelocity,
-            State,
-            Zoom
+            HumanoidRootPartCFrame, --1
+            CameraCFrame, --2
+            Velocity, --3
+            AssemblyLinearVelocity, --4
+            AssemblyAngularVelocity, --5
+            State, --6
+            Zoom, --7
+            Shiftlock, --8
+            MouseLocation, --9
         })
         
         --
@@ -1804,19 +1948,19 @@ Insert(Configuration.Connections, RunService.PreSimulation:Connect(function()
     end
 end))
 
-Insert(Configuration.Connections, RunService.RenderStepped:Connect(function()
+Insert(Library.Connections, RunService.RenderStepped:Connect(function()
     if not Reading then
-        if Utilities.InputState.Keys[ToKeyCode(Configuration.Keybind.SeekBackward)] then
+        if Utilities.InputState.Keys[ToKeyCode(Library.Keybind.SeekBackward)] then
             Utilities.Tasability.StepFrame(-1)
             --print"67"
-        elseif Utilities.InputState.Keys[ToKeyCode(Configuration.Keybind.SeekForward)] then
+        elseif Utilities.InputState.Keys[ToKeyCode(Library.Keybind.SeekForward)] then
             Utilities.Tasability.StepFrame(1)
         end
     end
 end))
 
 -- Frozen
-Insert(Configuration.Connections, RunService.RenderStepped:Connect(function()
+Insert(Library.Connections, RunService.RenderStepped:Connect(function()
 	HumanoidRootPart.Anchored = Frozen
     if Frozen and not Reading then
         local Frame = Frames[#Frames]
@@ -1828,6 +1972,8 @@ Insert(Configuration.Connections, RunService.RenderStepped:Connect(function()
             local AssemblyAngularVelocity = DeserializeValue(Frame[5])
             local State = Frame[6]
             local Zoom = Frame[7]
+            local Shiftlock = Frame[8]
+            local MouseLocation = DeserializeValue(Frame[9])
             
             HumanoidRootPart.CFrame = HumanoidRootPartCFrame
             HumanoidRootPart.Velocity = Velocity
@@ -1842,7 +1988,7 @@ Insert(Configuration.Connections, RunService.RenderStepped:Connect(function()
 end))
 
 -- Labels
-Insert(Configuration.Connections, RunService.RenderStepped:Connect(function()
+Insert(Library.Connections, RunService.RenderStepped:Connect(function()
     if ReplayFile then
         CurrentReplayFile.Text = "Current replay file: " .. tostring(ReplayFile)
     else
@@ -1865,9 +2011,16 @@ end)
 
 
 
+
 --
 
 for i = 1, 3 do -- unnecessary but i like it
 	task.wait()
 end
 -- man i just wnna kms :pensive:
+--[[
+    TODO:
+    [!] Add Shiftlock value for reading and writing
+    [!] Add C++ Exe that handle real inputs (this easy asf)
+    [!] Add emote support
+]]
