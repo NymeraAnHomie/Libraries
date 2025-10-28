@@ -42,6 +42,7 @@ MatchCheck()
 local Utilities = {} -- Ignore
 local Frames = {} -- Ignore
 
+-- why my programming style still like an dahood dev (i was once an pf and dh dev)
 -- If you had the tiniest bit of lua yk how to use this table
 local Library = {
 	MenuBind = "M",
@@ -55,6 +56,7 @@ local Library = {
         -- THIS also might BREAK/CORRUPT youre tas at the reward of getting less data size so idk
 		-- i highly recommend to use auto or executor if one error in the console
 		-- then switch an diff mode
+		-- but srsly idgaf if it corrupt yo sh bro
 		Mode = "auto", -- auto;executor;zlib_uncompressed
 	};
 	Keybind = {
@@ -83,7 +85,7 @@ local Library = {
 	
 	--
 	Directory = "NymeraTas",
-	Folders = {"/Records", "/Connections"},
+	Folders = {"/Records", "/Connections"};
 	Ignore,
 	Holder,
 	Cursor,
@@ -1972,8 +1974,8 @@ Insert(Library.Connections, RunService.PreSimulation:Connect(function()
             Velocity, --3
             AssemblyLinearVelocity, --4
             AssemblyAngularVelocity, --5
-            State, --6
-            Zoom, --7
+            State, --6 bro
+            Zoom, --7 bro
             Shiftlock, --8
             MouseLocation, --9
         })
@@ -2055,7 +2057,6 @@ end
 -- man i just wnna kms :pensive:
 --[[
     TODO:
-    [!] Add Shiftlock value for reading and writing
     [!] Add C++ Exe that handle real inputs (this easy asf)
     [!] Add emote support
 ]]
