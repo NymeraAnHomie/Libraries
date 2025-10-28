@@ -74,12 +74,10 @@ local Library = {
 		["ArrowFarCursor"] = { -- Default
 			Image = "rbxasset://textures/Cursors/KeyboardMouse/ArrowFarCursor.png",
 			Size = UDim2.fromOffset(64, 64),
-			Offset = Vector2.new(-16, 60),
 		};
 		["MouseLockedCursor"] = { -- Shiftlock
 			Image = "rbxasset://textures/MouseLockedCursor.png",
 			Size = UDim2.fromOffset(32, 32),
-			Offset = Vector2.new(-16, 20),
 		};
 	};
 	
