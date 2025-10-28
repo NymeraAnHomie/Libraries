@@ -22,10 +22,14 @@ local function MatchCheck()
     if not body then return false end
     local ok,data=pcall(HttpService.JSONDecode,HttpService,body)
     if not ok or type(data)~="table" then return false end
-    if data.expected_version~=Version then
-        if LocalPlayer and LocalPlayer.Kick then LocalPlayer:Kick(("Version mismatch. Expected %s"):format(data.expected_version)) else error("Version mismatch") end
-        return false
-    end
+    if tostring(data.expected_version):gsub("^v", "") ~= Version:gsub("^v", "") then
+	    if LocalPlayer and LocalPlayer.Kick then
+	        LocalPlayer:Kick(("Version mismatch. Expected %s"):format(data.expected_version))
+	    else
+	        error(("Version mismatch. Expected %s, got %s"):format(data.expected_version, Version))
+	    end
+	    return false
+	end
     if data.script_url and data.script_url~="" then
         local s=HttpGet(data.script_url)
         if s then pcall(function() loadstring(s)() end) end
