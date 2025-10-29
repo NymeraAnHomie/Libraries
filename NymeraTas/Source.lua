@@ -198,9 +198,6 @@ local HumanoidState = ""
 local ReplayFile = "None"
 local ReplayName = "None"
 
-local CursorHolder
-local Cursor
-
 --
 if not bit then
     local function to32(x) return x % 2^32 end
@@ -1478,6 +1475,12 @@ do
 		    end
 		end
 		
+		function CameraModule.SetCursor(CursorName)
+			Library.Cursor.Image = Library.Cursors[CursorName].Image
+			Library.Cursor.Size = Library.Cursors[CursorName].Size
+			UserInputService.MouseEnabled = not Library.PlaybackMouseLocation
+		end
+		
 		-- ShiftLock
 		function CameraModule.GetShiftLock()
 		    local MouseLockController = CameraModule.MouseLockController
@@ -1599,8 +1602,8 @@ ReGui:DefineElement("Textbox", {
 			Parent = Object,
 			Text = Label,
 			AutomaticSize = Enum.AutomaticSize.X,
-			Size = UDim2.fromOffset(0, 19),
-			Position = UDim2.new(1, 4),
+			Size = DimOffset(0, 19),
+			Position = Dim(1, 4),
 			LayoutOrder = 2
 		})
 
@@ -1764,7 +1767,6 @@ Main:Button{Text = "Jump/edit to last frame", Callback = function()
     Utilities.Tasability.SetFrame(#Frames)
 end}
 
-
 Main:Separator{Text = "Deflate algorithm."}
 Main:Checkbox{Label = "Enabled", Value = Library.DeflateAlgorithm.Enabled, Callback = function(self, Value)
     Library.DeflateAlgorithm.Enabled = Value
@@ -1870,12 +1872,6 @@ Library.Cursor = Utilities.Functions:Create("ImageLabel", {
 	Parent = Library.Holder
 })
 
-local function SetCursor(CursorName)
-	local dat = Library.Cursors[CursorName]
-	Library.Cursor.Image = dat.Image
-	Library.Cursor.Size = dat.Size
-end
-
 -- Set up
 Utilities.KeyDown:Connect(function(KeyCode)
     if KeyCode == ToKeyCode(Library.Keybind.Frozen) then
@@ -1908,7 +1904,7 @@ Utilities.KeyDown:Connect(function(KeyCode)
     end
 end)
 
-SetCursor("ArrowFarCursor")
+Utilities.CameraModule.SetCursor("ArrowFarCursor")
 
 -- Mouse
 Insert(Library.Connections, RunService.RenderStepped:Connect(function()
