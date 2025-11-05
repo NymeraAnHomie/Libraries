@@ -1478,7 +1478,6 @@ do
 		function CameraModule.SetCursor(CursorName)
 			Library.Cursor.Image = Library.Cursors[CursorName].Image
 			Library.Cursor.Size = Library.Cursors[CursorName].Size
-			UserInputService.MouseEnabled = not Library.PlaybackMouseLocation
 		end
 		
 		-- ShiftLock
@@ -1940,8 +1939,11 @@ Insert(Library.Connections, RunService.RenderStepped:Connect(function()
                 HumanoidRootPart.AssemblyLinearVelocity = AssemblyLinearVelocity
                 HumanoidRootPart.AssemblyAngularVelocity = AssemblyAngularVelocity
                 Camera.CFrame = CameraCFrame
-                Library.Cursor.Position = DimOffset(MouseLocation.X, MouseLocation.Y)
                 
+                if Library.PlaybackMouseLocation then
+                    mousemoveabs(MouseLocation.X, MouseLocation.Y)  
+                end
+
                 Humanoid:ChangeState(Enum.HumanoidStateType[State])
                 Utilities.CameraModule.UpdateZoom(tonumber(Zoom)) -- tonumber useless but idaf 💔
                 Utilities.CameraModule.SetShiftLock(Shiftlock)
