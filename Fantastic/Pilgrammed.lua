@@ -491,6 +491,10 @@ local Window = WindUI:CreateWindow{Title = "Fantastichook", Folder = "Fantastich
 	end
 	
 	local Section = Window:Tab{Title = "Player", Icon = "rbxassetid://125020872044147"} do
+		Section:Section{Title = "Main."}
+		Section:Toggle{Title = "Infinite Jump", Desc = "(i haven't finish this yet lol)", Type = "Toggle"}
+		Section:Button{Title = "Get All Mirror", Desc = "(i haven't finish this yet lol)"}
+		
 		Section:Section{Title = "NPCs"}
 		Section:Dropdown{Title = "NPCs", Desc = "Select the NPCs used on top.", Values = Configuration[3], Callback = GetCallback("Player%%NPCs")}
 		Section:Button{Title = "Action", Desc = "Set you're location to the designated npc.", Callback = GetCallback("Player%%NPCs Action")}
