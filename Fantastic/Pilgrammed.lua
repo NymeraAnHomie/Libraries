@@ -64,7 +64,6 @@ local Configuration = {
 	{ -- cfg
 		["Auto Parry"] = {
 			Enabled = false,
-			AutoAdjust = false,
 			Interval = 0.02,
 		},
 		["God Mode"] = {
@@ -456,9 +455,11 @@ Insert(Utilities.Connections, RunService.RenderStepped:Connect(function(dt)
     end
     
     if Configuration[1]["Auto Parry"].Enabled then
-        ReplicatedStorage.Remotes.Block:FireServer(true)
-        ReplicatedStorage.Remotes.Block:FireServer(false)
-    end
+		if Floor(tick() / tonumber(Configuration[1]["Auto Parry"].Interval)) ~= Floor((tick() - 0.016) / tonumber(Configuration[1]["Auto Parry"].Interval)) then
+			ReplicatedStorage.Remotes.Block:FireServer(true)
+			ReplicatedStorage.Remotes.Block:FireServer(false)
+		end
+	end
 end))
 
 local Window = WindUI:CreateWindow{Title = "Fantastichook", Folder = "Fantastichook", Size = DimOffset(760, 450), MinSize = Vec2(560, 350), MaxSize = Vec2(850, 560), User = {Enabled = true, Anonymous = false}} do
@@ -474,7 +475,6 @@ local Window = WindUI:CreateWindow{Title = "Fantastichook", Folder = "Fantastich
 	local Section = Window:Tab{Title = "Combat", Icon = "rbxassetid://110987169760162"} do
 		Section:Section{Title = "Auto Parry"}
 		Section:Toggle{Title = "Enabled", Desc = "Enables Auto Parry.", Type = "Toggle", Callback = GetCallback("Auto Parry%%Enabled")}
-		Section:Toggle{Title = "Auto Adjust Interval", Desc = "Automatically adjust the interval depending on you're ping.", Type = "Toggle", Callback = GetCallback("Auto Parry%%Auto Adjust")}
 		Section:Input{Title = "Interval", Desc = "Controls how often auto parry should parry (in seconds).", Placeholder = "Enter number...", Callback = GetCallback("Auto Parry%%Interval")}
 		
 		Section:Section{Title = "God Mode."}
