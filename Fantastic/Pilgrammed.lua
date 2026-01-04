@@ -577,7 +577,7 @@ Insert(Utilities.Connections, RunService.RenderStepped:Connect(function(dt)
 end))
 
 Insert(Utilities.Connections, UserInputService.JumpRequest:Connect(function()
-	if Configuration[1]["Player"].InfiniteJump and LocalPlayer.Character and not Debounce.InfiniteJump then
+	if Configuration[1]["Player"].InfiniteJump and LocalPlayer.Character then
 		LocalPlayer.Character:FindFirstChildWhichIsA("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
 		task.wait()
 	end
