@@ -6,7 +6,7 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
 local bit = bit32 or bit
-local http_request = http_request or request or syn and syn.request or http and http.request
+local request = http_request or request or (syn and syn.request) or (http and http.request)
 
 -- variables
 -- data types
@@ -64,16 +64,28 @@ local Configuration = {
 	{ -- cfg
 		["Auto Parry"] = {
 			Enabled = false,
-			Interval = 0.02,
+			Interval = 0.016,
 		},
 		["God Mode"] = {
 			Enabled = false,
 			Method = "Remote",
 		},
+		["Auto Farm"] = {
+			Enabled = false,
+			AutoAttack = false,
+			AutoHeavy = false,
+			FocusOn = "Bosses",
+			Mobs = "",
+			Bosses = "",
+		},
 		["Teleport"] = {
 			Rifts = "Deep Desert",
-			NPC = "",
+			NPC = "Abraska",
 		},
+		["Player"] = {
+			InfiniteJump = false,
+		},
+		BuildStealer = "",
 	},
 	{ -- rift data
 		["Deep Desert"] = "1",
@@ -85,11 +97,19 @@ local Configuration = {
 		["Light House"] = "7",
 	},
 	{}, -- npcs
+	{}, -- modules
 }
 
-for _, v in ipairs(Workspace.NPCs:GetChildren()) do
+for _, v in ipairs(game:GetService("Workspace").NPCs:GetChildren()) do
     if v:FindFirstChild("HumanoidRootPart") and not string.find(v.Name, "Sign") then
         Insert(Configuration[3], v.Name)
+    end
+end
+
+for _, v in ipairs(game:GetService("ReplicatedStorage"):GetChildren()) do
+    if v.ClassName == "ModuleScript" then
+        Configuration[4][v.Name] = require(v)
+        print("required "..v.Name)
     end
 end
 --
@@ -368,13 +388,66 @@ local Signal = {} do
 	end)
 end
 
+-- functions
+local Functions = {}; do
+	function Functions:GetAllPlayers()
+		local Players = game:GetService("Players")
+		local LocalPlayer = Players.LocalPlayer
+	    local Table = {}
+	    for _, v in pairs(Players:GetPlayers()) do
+	        if v ~= LocalPlayer then
+	            Insert(Table, v.Name)
+	        end
+	    end
+	    return Table
+	end
+
+	function Functions:SendWebhook(URL, Content)
+		if not request then
+			return
+		end
+	
+		local Data = {
+			content = Content
+		}
+	
+		request({
+			Url = URL,
+			Method = "POST",
+			Headers = {
+				["Content-Type"] = "application/json"
+			},
+			Body = HttpService:JSONEncode(Data)
+		})
+	end
+	
+	function Functions:GetBuild(Player)
+		local Target = Players[Player]
+		local Accessories = {}
+		local Skills = {}
+		
+		for _, Child in ipairs(Target.SkillTree:GetChildren()) do
+			local Value = Child.Value
+			if Value == 0 then
+				Insert(Skills, Child.Name .. ": Base")
+			elseif Value == 1 then
+				Insert(Skills, Child.Name .. ": Aced")
+			end
+		end
+		
+		for i = 1, 5 do
+			local Slot = Target.EquippedAccessories:FindFirstChild(tostring(i))
+			Insert(Accessories, tostring(Slot.Value))
+		end
+		
+		return Accessories, Skills
+	end
+end
+
+-- callback lists
 local CallbackLists = {}; do
 	CallbackLists["Auto Parry%%Enabled"] = function(Value)
 		Configuration[1]["Auto Parry"].Enabled = Value
-	end
-	
-	CallbackLists["Auto Parry%%Auto Adjust Interval"] = function(Value)
-		Configuration[1]["Auto Parry"].AutoAdjust = Value
 	end
 	
 	CallbackLists["Auto Parry%%Interval"] = function(Value)
@@ -387,6 +460,33 @@ local CallbackLists = {}; do
 	
 	CallbackLists["God Mode%%Method"] = function(Value)
 		Configuration[1]["God Mode"].Method = Value
+	end
+	
+	CallbackLists["Player%%Infinite Jump"] = function(Value)
+		Configuration[1]["Player"].InfiniteJump = Value
+	end
+	
+	CallbackLists["Stealer%%Player Name"] = function(Value)
+		Configuration[1].BuildStealer = Value
+	end
+	
+	CallbackLists["Auto Farm%%Auto Heavy"] = function(Value)
+		Configuration[1]["Auto Farm"].AutoHeavy = Value
+	end
+	
+	CallbackLists["Auto Farm%%Auto Attack"] = function(Value)
+		Configuration[1]["Auto Farm"].AutoAttack = Value
+	end
+	
+	CallbackLists["Player%%Get All Mirror"] = function() -- take down all the mirror in my house i hate my nose and my mouth
+		for i,v in pairs(Workspace.Mirrors:GetDescendants()) do
+		    if v.ClassName == "ProximityPrompt" then
+		        LocalPlayer.Character.HumanoidRootPart.CFrame = v.Parent.CFrame
+		        task.wait(0.093)
+		        fireproximityprompt(v, 1)
+		        task.wait(0.09)
+		    end
+		end
 	end
 	
 	CallbackLists["Player%%NPCs Action"] = function()
@@ -445,6 +545,7 @@ local CallbackLists = {}; do
         setclipboard(Format("UDim2.new(%s, %s, %s, %s)", size.X.Scale, size.X.Offset, size.Y.Scale, size.Y.Offset))
 	end
 end
+--
 
 Insert(Utilities.Connections, RunService.RenderStepped:Connect(function(dt)
     if Configuration[1]["God Mode"].Enabled then
@@ -462,7 +563,30 @@ Insert(Utilities.Connections, RunService.RenderStepped:Connect(function(dt)
 	end
 end))
 
-local Window = WindUI:CreateWindow{Title = "Fantastichook", Folder = "Fantastichook", Size = DimOffset(760, 450), MinSize = Vec2(560, 350), MaxSize = Vec2(850, 560), User = {Enabled = true, Anonymous = false}} do
+Insert(Utilities.Connections, RunService.RenderStepped:Connect(function(dt)
+	local Weapon = LocalPlayer.Character:FindFirstChildWhichIsA("Tool")
+	if Weapon and Weapon:FindFirstChild("Slash") then
+		if Configuration[1]["Auto Farm"].AutoAttack then
+			Weapon.Slash:FireServer(1)
+		end
+		
+		if Configuration[1]["Auto Farm"].AutoHeavy then
+			Weapon.Slash:FireServer(2)
+		end
+	end
+end))
+
+Insert(Utilities.Connections, UserInputService.JumpRequest:Connect(function()
+	if Configuration[1]["Player"].InfiniteJump and LocalPlayer.Character and not Debounce.InfiniteJump then
+		LocalPlayer.Character:FindFirstChildWhichIsA("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
+		task.wait()
+	end
+end))
+
+local Window = WindUI:CreateWindow{Title = "Fantastichook", Folder = "Fantastichook", Size = DimOffset(600, 400), MinSize = Vec2(560, 350), MaxSize = Vec2(850, 560), HideSearchBar = false, User = {Enabled = true, Anonymous = false}} do
+	local ConfigManager = Window.ConfigManager
+	local Config = ConfigManager:CreateConfig("MainCfg")
+
 	function GetCallback(Name)
 	    return function(...)
 	        local Callback = CallbackLists[Name]
@@ -474,34 +598,65 @@ local Window = WindUI:CreateWindow{Title = "Fantastichook", Folder = "Fantastich
 
 	local Section = Window:Tab{Title = "Combat", Icon = "rbxassetid://110987169760162"} do
 		Section:Section{Title = "Auto Parry"}
-		Section:Toggle{Title = "Enabled", Desc = "Enables Auto Parry.", Type = "Toggle", Callback = GetCallback("Auto Parry%%Enabled")}
-		Section:Input{Title = "Interval", Desc = "Controls how often auto parry should parry (in seconds).", Placeholder = "Enter number...", Callback = GetCallback("Auto Parry%%Interval")}
+		Section:Toggle{Title = "Enabled", Flag = "AutoParry_Enabled", Desc = "Enables Auto Parry.", Type = "Toggle", Callback = GetCallback("Auto Parry%%Enabled")}
+		Section:Input{Title = "Interval", Flag = "AutoParry_Interval", Desc = "Controls how often auto parry should parry (in seconds).", Placeholder = "Enter number...", Callback = GetCallback("Auto Parry%%Interval")}
 		
 		Section:Section{Title = "God Mode."}
-		Section:Toggle{Title = "Enabled", Desc = "Enables God Mode and greatly reduces the chances of getting hit.", Type = "Toggle", Callback = GetCallback("God Mode%%Enabled")}
-		Section:Dropdown{Title = "Method", Desc = "Select the method used for God Mode.", Values = {"Remote"}, Value = "Remote", Callback = GetCallback("Auto Parry%%Method")}
+		Section:Toggle{Title = "Enabled", Flag = "GodMode_Enabled", Desc = "Enables God Mode and greatly reduces the chances of getting hit.", Type = "Toggle", Callback = GetCallback("God Mode%%Enabled")}
+		Section:Dropdown{Title = "Method", Flag = "GodMode_Method", Desc = "Select the method used for God Mode.", Values = {"Remote"}, Value = "Remote", Callback = GetCallback("Auto Parry%%Method")}
 	end
 	
 	local Section = Window:Tab{Title = "Visuals", Icon = "rbxassetid://100033680381365"} do
-	
+		--
 	end
 	
 	local Section = Window:Tab{Title = "Auto Farm", Icon = "rbxassetid://126990543175462"} do
+		Section:Section{Title = "Config"}
+		Section:Toggle{Title = "Auto Attack", Flag = "Auto_Weapon_Attack", Desc = "", Callback = GetCallback("Auto Farm%%Auto Attack")}
+		Section:Toggle{Title = "Auto Heavy", Flag = "Auto_Weapon_Heavy", Desc = "", Callback = GetCallback("Auto Farm%%Auto Heavy")}
+		
+		Section:Section{Title = "Enemy (all under me isn't finished)"}
+		Section:Toggle{Title = "Enabled", Flag = "AutoFarm_Enabled", Desc = ""}
+		Section:Dropdown{Title = "Focus On", Flag = "AutoFarm_FocusOn", Desc = "", Values = {"Bosses", "Mobs"}, Value = "Bosses"}
+		Section:Dropdown{Title = "Mobs", Flag = "AutoFarm_Mobs", Desc = "", Values = {""}, Value = ""}
+		Section:Dropdown{Title = "Bosses", Flag = "AutoFarm_Bosses", Desc = "", Values = {""}, Value = ""}
+		
+		Section:Section{Title = "Ores."}
+		Section:Toggle{Title = "Enabled", Flag = "AutoFarm_Ores_Enabled", Desc = ""}
+	end
 	
+	local Section = Window:Tab{Title = "Web Hook", Icon = "rbxassetid://112812457747322"} do
+		--
+	end
+	
+	local Section = Window:Tab{Title = "Stealer", Icon = "rbxassetid://70905313146088"} do
+		local Paragraph = Section:Paragraph{Title = "Build", Desc = "Accessories:\nSkills: "}
+		local Dropdown
+		Section:Section{Title = "Main."}
+		Section:Button{Title = "Action", Desc = "Set the paragraph on top of the designated player exposing there build.", Callback = function()
+			local Accessories, Skills = Functions:GetBuild(Configuration[1].BuildStealer)
+			local Description = "Accessories:\n" .. Concat(Accessories, ", ")
+			Description = Description .. "\n\nSkills:\n" .. Concat(Skills, ", ")
+			Paragraph:SetDesc(Description)
+		end}
+		Section:Button{Title = "Refresh List", Callback = function()
+			Dropdown:Refresh(Functions:GetAllPlayers())
+		end}
+		Dropdown = Section:Dropdown{Title = "Lists", Desc = "Select the player used on top.", Values = Functions:GetAllPlayers(), Callback = GetCallback("Stealer%%Player Name")}
 	end
 	
 	local Section = Window:Tab{Title = "Player", Icon = "rbxassetid://125020872044147"} do
-		Section:Section{Title = "Main."}
-		Section:Toggle{Title = "Infinite Jump", Desc = "(i haven't finish this yet lol)", Type = "Toggle"}
-		Section:Button{Title = "Get All Mirror", Desc = "(i haven't finish this yet lol)"}
+		Section:Section{Title = "Main"}
+		Section:Toggle{Title = "Infinite Jump", Desc = "Allows you to jump continuously while airborne.", Type = "Toggle", Callback = GetCallback("Player%%Infinite Jump")}
+		Section:Button{Title = "Get All Mirror", Desc = "Grab every possible existing mirrors.", Callback = GetCallback("Player%%Get All Mirror")}
 		
 		Section:Section{Title = "NPCs"}
-		Section:Dropdown{Title = "NPCs", Desc = "Select the NPCs used on top.", Values = Configuration[3], Callback = GetCallback("Player%%NPCs")}
 		Section:Button{Title = "Action", Desc = "Set you're location to the designated npc.", Callback = GetCallback("Player%%NPCs Action")}
+		Section:Dropdown{Title = "NPCs", Flag = "Teleport_NPCs", Desc = "Select the NPCs used on top.", Values = Configuration[3], Value = "Abraska", Callback = GetCallback("Player%%NPCs")}
 		
 		Section:Section{Title = "Rifts"}
-		Section:Dropdown{Title = "Rifts", Desc = "Select the Rifts used on top.", Values = {"Deep Desert", "Mountain Basin", "Patchland Grove", "The Backdoor", "Strange Chasm", "Cloud Wilds", "Light House"}, Value = "Deep Desert", Callback = GetCallback("Player%%Rift")}
 		Section:Button{Title = "Action", Desc = "Set you're location to the designated rift.", Callback = GetCallback("Player%%Rift Action")}
+		Section:Dropdown{Title = "Rifts", Flag = "Teleport_Rifts", Desc = "Select the Rifts used on top.", Values = {"Deep Desert", "Mountain Basin", "Patchland Grove", "The Backdoor", "Strange Chasm", "Cloud Wilds", "Light House"}, Value = "Deep Desert", Callback = GetCallback("Player%%Rift")}
 		
 		Section:Section{Title = "Pitfall."}
 		Section:Button{Title = "Action", Desc = "Set you're location to pitfall.", Callback = GetCallback("Player%%Pitfall Action")}
@@ -510,13 +665,21 @@ local Window = WindUI:CreateWindow{Title = "Fantastichook", Folder = "Fantastich
 	Window:Divider()
 	local Section = Window:Tab{Title = "Settings.", Icon = "rbxassetid://80758916183665", Locked = false} do
 		Section:Section{Title = "Main"}
-		Section:Toggle{Title = "Anonymous", Desc = "Set your profile to anonymous.", Type = "Toggle", Callback = GetCallback("Setting%%Anonymous")}
-		Section:Toggle{Title = "Transparency", Value = true, Desc = "Set the gui transparent.", Type = "Toggle", Callback = GetCallback("Setting%%Transparency")}
+		Section:Toggle{Title = "Anonymous", Flag = "Anonymous", Desc = "Set your profile to anonymous.", Type = "Toggle", Callback = GetCallback("Setting%%Anonymous")}
+		Section:Toggle{Title = "Transparency", Flag = "Transparency", Value = true, Desc = "Set the gui transparent.", Type = "Toggle", Callback = GetCallback("Setting%%Transparency")}
+		
+		Section:Section{Title = "Configuration"}
+		Section:Button{Title = "Save", Desc = "Save every elements inside the ui.", Callback = function() Config:Save() end}
+		Section:Button{Title = "Delete", Desc = "Set every elements value default inside the ui.", Callback = function() Config:Delete() task.wait() Config:Load() end}
+		
 		Section:Section{Title = "Developer."}
 		Section:Button{Title = "Get Window Size", Desc = "IF YOU'RE READING THIS, DON'T TOUCH ANYTHING IN DEV SECTION", Callback = GetCallback("Developer%%Get Window Size")}
 	end
 	
 	Window:ToggleTransparency(true)
-	Window:Tag{Title = "v1.1", Color = Color3.fromHex("#30ff6a"), Radius = 13}
-	Window:Tag{Title = ".gg/", Color = Color3.fromHex("#7289da"), Radius = 13}
+	Window:Tag{Title = "v1.1", Color = Hex("#30ff6a"), Radius = 13}
+	Window:Tag{Title = ".gg/", Color = Hex("#7289da"), Radius = 13}
+	
+	task.wait()
+	Config:Load()
 end
