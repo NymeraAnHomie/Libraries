@@ -62,8 +62,8 @@
 	~ Credits ~
 	
 	[ Nymera ] - [ @1152275241201053737 ] | Lead Developer
-	[ Cyruss ] - [ @FLY HIGH CYRUSS] | Contributed on the Deflate & Data handler system
-
+	[ Cyruss ] - [ @FLY HIGH CYRUSS] | Contributed on fixing the shiftlock/zoom and deflate and json by helping
+	
 	~ Special Thanks ~
 
     [ 9kwr Tasablity ] - [ Tooked inspiration from them & improved it]
@@ -1100,7 +1100,7 @@ do
 	            return Signal.Create()
 	        end
 	        local segments = {}
-	        for segment in gmatch(name, "[^%.]+") do
+	        for segment in Gmatch(name, "[^%.]+") do
 	            Insert(segments, segment)
 	        end
 	        local cursor = Registry.Signals
@@ -1500,128 +1500,115 @@ do
 		Utilities.KeySignals = KeySignals -- set to global utilities for further use
     end
     
-    -- camera module
-    do
+    -- camera
+	do
 		local CameraModule = {}
 		CameraModule.__index = CameraModule
 		CameraModule.ClassName = "ModuleScript"
 		CameraModule.ZoomController = nil
 		CameraModule.MouseLockController = nil
-		
+
 		-- closure scanner
 		do
 			local ZoomCount = 0
 			local MouseLockCount = 0
-		
-			for _, Object in next, getgc(true) do
-				if type(Object) == "table" then
-					if rawget(Object, "Update") and rawget(Object, "SetZoomParameters") then
-						CameraModule.ZoomController = Object
+
+			for _, obj in next, getgc(true) do
+				if type(obj) == "table" then -- son you couldnt get the rel active zoom module LOL
+					if rawget(obj, "Update") 
+					and rawget(obj, "SetZoomParameters")
+					and type(obj.Update) == "function"
+					and type(obj.SetZoomParameters) == "function" then
+						CameraModule.ZoomController = obj
 						ZoomCount += 1
-					elseif rawget(Object, "GetIsMouseLocked") and rawget(Object, "EnableMouseLock") then
-						CameraModule.MouseLockController = Object
+					elseif rawget(obj, "GetIsMouseLocked") and rawget(obj, "EnableMouseLock") then
+						CameraModule.MouseLockController = obj
 						MouseLockCount += 1
 					end
 				end
 			end
-		
+
 			print(tostring(ZoomCount).." ZoomController"..(ZoomCount == 1 and "" or "s")..", "
 				..tostring(MouseLockCount).." MouseLockController"..(MouseLockCount == 1 and "" or "s"))
 		end
-		
+
 		-- zoom controller
+		local ZoomSpringCache = nil
+		local LastZoom = 12.5
+
 		function CameraModule.GetZoom()
 			local ZoomCtrl = CameraModule.ZoomController
 			if not ZoomCtrl then
 				return 12.5
 			end
-		
-			local Upvalues = getupvalues(ZoomCtrl.Update)
-			for _, V in pairs(Upvalues) do
-				if type(V) == "table" and rawget(V, "x") and rawget(V, "goal") then
-					return V.x
+
+			if not ZoomSpringCache then
+				local upvalues = getupvalues(ZoomCtrl.Update)
+				for _, v in pairs(upvalues) do
+					if type(v) == "table" and rawget(v, "x") and rawget(v, "goal") then
+						ZoomSpringCache = v
+						break
+					end
 				end
 			end
-		
-			return 12.5
+
+			return ZoomSpringCache and ZoomSpringCache.x or 12.5
 		end
-		
+
 		function CameraModule.UpdateZoom(Value)
-		    if CameraModule.ZoomController then
-		        CameraModule.ZoomController.SetZoomParameters(Value, 0)
-		    end
+			if CameraModule.ZoomController and Value ~= LastZoom then
+				CameraModule.ZoomController.SetZoomParameters(Value, 0)
+				LastZoom = Value
+			end
 		end
-		
+
 		function CameraModule.ReleaseZoom()
-		    if CameraModule.ZoomController then
-		        CameraModule.ZoomController.ReleaseSpring()
-		    end
+			if CameraModule.ZoomController and CameraModule.ZoomController.ReleaseSpring then
+				CameraModule.ZoomController:ReleaseSpring()
+			end
 		end
-		
+
 		function CameraModule.SetCursor(CursorName)
 			Library.Cursor.Image = Library.Cursors[CursorName].Image
 			Library.Cursor.Size = Library.Cursors[CursorName].Size
 		end
-		
-		-- shiftLock
+
+		-- shiftLock controller
 		function CameraModule.GetShiftLock()
-		    local MouseLockController = CameraModule.MouseLockController
-		    if not MouseLockController then
-		        return false
-		    end
-		
-		    if type(MouseLockController.GetIsMouseLocked) == "function" then
-		        local ok, v = pcall(function() return MouseLockController:GetIsMouseLocked() end)
-		        if ok then
-		            return v
-		        end
-		    end
-		
-		    if type(MouseLockController.IsMouseLocked) == "function" then
-		        local ok, v = pcall(function() return MouseLockController:IsMouseLocked() end)
-		        if ok then
-		            return v
-		        end
-		    end
-		
-		    if type(MouseLockController.isMouseLocked) == "boolean" then
-		        return MouseLockController.isMouseLocked
-		    end
-		
-		    return false
+			local MouseLockController = CameraModule.MouseLockController
+			if not MouseLockController then return false end
+
+			if type(MouseLockController.GetIsMouseLocked) == "function" then
+				local ok, v = pcall(function() return MouseLockController:GetIsMouseLocked() end)
+				if ok then return v end
+			end
+
+			if type(MouseLockController.IsMouseLocked) == "function" then
+				local ok, v = pcall(function() return MouseLockController:IsMouseLocked() end)
+				if ok then return v end
+			end
+
+			if type(MouseLockController.isMouseLocked) == "boolean" then
+				return MouseLockController.isMouseLocked
+			end
+
+			return false
 		end
-		
+
 		function CameraModule.SetShiftLock(Value)
-		    local MouseLockController = CameraModule.MouseLockController
-		    if not MouseLockController then
-		        return
-		    end
-		
-		    if type(MouseLockController.EnableMouseLock) == "function" then
-		        pcall(function() MouseLockController:EnableMouseLock(true) end)
-		    end
-		
-		    local Current = CameraModule.GetShiftLock()
-		
-		    if Current == Value then
-		        return
-		    end
-		
-		    if type(MouseLockController.DoMouseLockSwitch) == "function" then
-		        pcall(function() MouseLockController:DoMouseLockSwitch("MouseLockSwitchAction", Enum.UserInputState.Begin, game) end)
-		        return
-		    end
-		
-		    if type(MouseLockController.OnMouseLockToggled) == "function" then
-		        pcall(function() MouseLockController:OnMouseLockToggled() end)
-		        return
-		    end
-		
-		    if type(MouseLockController.isMouseLocked) == "boolean" then
-		        pcall(function() MouseLockController.isMouseLocked = Value end)
-		    end
+			local MouseLockController = CameraModule.MouseLockController
+			if not MouseLockController then return end
+
+			local Current = CameraModule.GetShiftLock()
+			if Current == Value then return end
+
+			if type(MouseLockController.OnMouseLockToggled) == "function" then
+				pcall(function() MouseLockController:OnMouseLockToggled() end)
+			elseif type(MouseLockController.isMouseLocked) == "boolean" then
+				pcall(function() MouseLockController.isMouseLocked = Value end)
+			end
 		end
-		--
+
 		Utilities.CameraModule = CameraModule -- set to global utilities for further use
 	end
     --
@@ -1867,13 +1854,14 @@ do -- Connections
 
 	-- labels
 	Insert(Library.Connections, RunService.RenderStepped:Connect(function()
-		if ReplayFile then
+		--[[if ReplayFile then
 			CurrentReplayFile.Text = "Current replay file: " .. tostring(ReplayFile)
 		else
 			CurrentReplayFile.Text = "Current replay file: n/a"
 		end
 		CurrentFrameIndex.Text = "Current frame index: " .. tostring(Index)
 		CurrentZoomValue.Text = "Current zoom value: " .. Floor(Utilities.CameraModule.GetZoom() * 100) / 100
+		]]
 	end))
 	--
 
@@ -2048,4 +2036,3 @@ for i = 1, 3 do -- unnecessary but i like it
 	task.wait()
 end
 -- man i just wnna kms :pensive:
-LocalPlayer:Kick("if u see this the script isn't fucking working it mid development 🥀")
