@@ -73,8 +73,11 @@
 	[+] Implement nohboard support
 	[+] Implement emote support
 	[+] Improve the retarded data system
+	[+] Improve closure cache & shiftlock & cam it so sensitive bro wtf
 	
 ]]
+
+-- God Hand UK GOD HAND GOD HAND
 
 local Network = game:GetService("NetworkClient")
 local NetworkSettings = settings().Network
@@ -87,7 +90,7 @@ local LocalPlayer = Players.LocalPlayer
 local bit = bit32 or bit
 local http_request = http_request or request or syn and syn.request or http and http.request
 
-local Version = "v1.2"
+local Version = "v1.3.2"
 local Checker = "https://raw.githubusercontent.com/NymeraAnHomie/Libraries/main/NymeraTas/Check.json"
 
 local function HttpGet(url)
@@ -264,11 +267,11 @@ local GuiOffset = GuiService:GetGuiInset().Y
 local IsMobile = UserInputService.TouchEnabled
 
 local Index = 1
+
 local Reading = false
 local Writing = false
 local Frozen = false
 local Paused = false
-local ShiftLockEnabled = false
 
 local Pose = ""
 local HumanoidState = ""
@@ -1631,9 +1634,16 @@ local function ToKeyCode(Key)
     end
     return nil
 end
+
+local function DeltaRound(n, decimals)
+    local p = 10 ^ decimals
+    return Floor(n * p + 0.5) / p
+end
 --
 
 do -- Connections
+	local PlaybackAccumulator = 0
+	
 	Library.Ignore = Utilities.Functions:Create("ScreenGui", {
 		Name = "\0",
 		DisplayOrder = 9999,
@@ -1729,7 +1739,6 @@ do -- Connections
 	end))
 
 	-- reading
-	local PlaybackAccumulator = 0
 	Insert(Library.Connections, RunService.RenderStepped:Connect(function(Delta)
 	    if Reading and not Writing and not Paused then
 	        if not Character:FindFirstChild("HumanoidRootPart") then
@@ -1741,6 +1750,11 @@ do -- Connections
 	        while Index <= #Frames do
 	            local Frame = Frames[Index]
 	            local FrameDelta = Frame[10]
+	
+				if FrameDelta <= 0 then
+				    Index += 1
+				    continue
+				end
 	
 	            if PlaybackAccumulator < FrameDelta then
 	                break
@@ -1806,7 +1820,7 @@ do -- Connections
 				Zoom, --7
 				Shiftlock, --8
 				MouseLocation, --9
-				Delta, --10
+				DeltaRound(Delta, 6), --10
 			})
 			
 			--
@@ -1956,14 +1970,29 @@ local CallbackLists = {}; do
 	
 	CallbackLists["Developer%%Get Window Size"] = function()
 		local size = WindUI:GetWindowSize()
-        setclipboard(Format("UDim2.new(%s, %s, %s, %s)", size.X.Scale, size.X.Offset, size.Y.Scale, size.Y.Offset))
+        setclipboard(Format("Dim2(%s, %s, %s, %s)", size.X.Scale, size.X.Offset, size.Y.Scale, size.Y.Offset))
+	end
+	
+	Library.Unload = function()
+		for _, Connection in ipairs(Library.Connections) do
+			if typeof(Connection) == "RBXScriptConnection" then
+				Connection:Disconnect()
+			end
+		end
+	
+		Library.Connections = {}
+		Reading = false
+		Writing = false
+		Frozen = false
+		Paused = false
+		Index = 1
 	end
 end
 --
 
-local Window = WindUI:CreateWindow{Title = "Tasablity - Nymera", Folder = "Silicate", Size = DimOffset(645, 450), MinSize = Vec2(560, 350), MaxSize = Vec2(850, 560), HideSearchBar = false, User = {Enabled = true, Anonymous = false}} do
+local Window = WindUI:CreateWindow{Title = "Tasablity - Nymera", Folder = "NymeraTas", Size = DimOffset(645, 450), MinSize = Vec2(560, 350), MaxSize = Vec2(850, 560), HideSearchBar = false, User = {Enabled = true, Anonymous = false}} do
 	local ConfigManager = Window.ConfigManager
-	local Config = ConfigManager:CreateConfig("MainCfg")
+	local Config = ConfigManager:CreateConfig("Settings")
 
 	function GetCallback(Name)
 	    return function(...)
@@ -2013,8 +2042,8 @@ local Window = WindUI:CreateWindow{Title = "Tasablity - Nymera", Folder = "Silic
 		Section:Toggle{Title = "Transparency", Flag = "Transparency", Value = true, Desc = "Set the gui transparent.", Type = "Toggle", Callback = GetCallback("Settings%%Transparency")}
 		
 		Section:Section{Title = "Configuration."}
-		Section:Button{Title = "Save", Desc = "Save every elements inside the ui.", Callback = function() Config:Save() end}
-		Section:Button{Title = "Delete", Desc = "Set every elements value default inside the ui.", Callback = function() Config:Delete() task.wait() Config:Load() end}
+		Section:Button{Title = "Save", Desc = "Saves every elements inside the ui.", Callback = function() Config:Save() end}
+		Section:Button{Title = "Delete", Desc = "Sets every elements value default inside the ui.", Callback = function() Config:Delete() task.wait() Config:Load() end}
 	end
 	
 	if DevMode then
@@ -2026,6 +2055,16 @@ local Window = WindUI:CreateWindow{Title = "Tasablity - Nymera", Folder = "Silic
 	Window:ToggleTransparency(true)
 	Window:Tag{Title = Version, Color = Hex("#30ff6a"), Radius = 13}
 	Window:Tag{Title = ".gg/", Color = Hex("#7289da"), Radius = 13}
+	
+	Window:EditOpenButton{
+	    Title = "Tasablity",
+	    CornerRadius = Dim(0,16),
+	    StrokeThickness = 2,
+	    Color = RgbSeq(Hex("FF0F7B"), Hex("F89B29")),
+	    OnlyMobile = true,
+	    Enabled = true,
+	    Draggable = true,
+	}
 	
 	task.wait()
 	Config:Load()
